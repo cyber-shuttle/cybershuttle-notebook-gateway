@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cybershuttle-gateway"
+authors = [{ name = "Yasith Jayawardana", email = "yasith@cs.odu.edu" }]
+description = "Gateway to Provision Jupyter Kernels"
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+requires-python = ">=3.10"
+dependencies = ["flask>=3.0.2", "pydantic>=2.6.4"]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/yasithdev/cybershuttle-gateway"
+Issues = "https://github.com/yasithdev/cybershuttle-gateway/issues"
+
+[tool.setuptools.packages.find]
+include = ["cybershuttle_gateway*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "cybershuttle_gateway.__version__" }

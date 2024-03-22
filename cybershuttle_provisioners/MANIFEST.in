@@ -1,0 +1,1 @@
+include cybershuttle_provisioners/templates/*.sh
