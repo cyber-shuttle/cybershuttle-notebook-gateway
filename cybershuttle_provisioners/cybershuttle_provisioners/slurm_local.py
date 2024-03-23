@@ -35,8 +35,6 @@ class LocalSlurmProvisioner(KernelProvisionerBase):
     ports_cached = False
 
     sbatch_flags: dict = traitlets.Dict(config=True)  # type: ignore
-    # proxyjump: str = traitlets.Unicode(config=True)  # type: ignore
-    # loginnode: str = traitlets.Unicode(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
     lmod_modules: list = traitlets.List(config=True)  # type: ignore
     template_dir = __template_dir__
@@ -307,8 +305,6 @@ class LocalSlurmProvisioner(KernelProvisionerBase):
         # basic kernelspec checks
         if not self.sbatch_flags:
             raise RuntimeError("Please provide sbatch flags to start the SLURM job with.")
-        if not self.lmod_modules:
-            raise RuntimeError("Please provide modules to load into the SLURM job.")
         if not self.username:
             raise RuntimeError(f"Please provide a username to start the SLURM job.")
 

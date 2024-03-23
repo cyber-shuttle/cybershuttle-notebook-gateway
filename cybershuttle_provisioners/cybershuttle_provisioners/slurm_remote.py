@@ -311,8 +311,6 @@ class RemoteSlurmProvisioner(KernelProvisionerBase):
         # basic kernelspec checks
         if not self.sbatch_flags:
             raise RuntimeError("Please provide sbatch flags to start the SLURM job with.")
-        if not self.lmod_modules:
-            raise RuntimeError("Please provide modules to load into the SLURM job.")
         if not self.loginnode:
             raise RuntimeError("Please provide a login node to start the SLURM job from.")
         if not self.username:
