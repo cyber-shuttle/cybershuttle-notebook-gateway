@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cybershuttle-provisioners"
+authors = [{ name = "Yasith Jayawardana", email = "yasith@cs.odu.edu" }]
+description = "Jupyter Kernel Provisioners for Cybershuttle"
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+requires-python = ">=3.10"
+dependencies = ["pexpect>=4.9.0", "ipython>=8.22.2", "jupyter_client>=8.6.1", "msgpack>=1.0.8"]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/yasithdev/cybershuttle-provisioners"
+Issues = "https://github.com/yasithdev/cybershuttle-provisioners/issues"
+
+[tool.setuptools.packages.find]
+include = ["cybershuttle_provisioners*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "cybershuttle_provisioners.__version__" }
+
+[project.entry-points."jupyter_client.kernel_provisioners"]
+slurm-remote = "cybershuttle_provisioners:RemoteSlurmProvisioner"
+slurm-local = "cybershuttle_provisioners:LocalSlurmProvisioner"
+cybershuttle = "cybershuttle_provisioners:CybershuttleProvisioner"
