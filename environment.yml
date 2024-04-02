@@ -6,7 +6,12 @@ dependencies:
   - conda-forge::jupyter_kernel_gateway
   - conda-forge::pip
   - conda-forge::setuptools
+  - conda-forge::schedule
+  - conda-forge::nodejs=18
+  - conda-forge::copier=7
+  - conda-forge::jinja2-time
   - pip:
       # source packages
       - "-e cybershuttle_provisioners/"
       - "-e cybershuttle_gateway/"
+      - "-e cybershuttle_nbplugin/"

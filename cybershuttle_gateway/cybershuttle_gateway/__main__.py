@@ -121,7 +121,7 @@ def provision_kernel(method_name: str, channel_name: str):
     job_id = api.launch_job(job_script)
     state_var[str(job_id)] = {
         "api": api,
-        **data.model_dump(),
+        **data.dict(),
         "ports": {k: data.connection_info[k] for k in fwd_ports},
         "forwarding": False,
     }
