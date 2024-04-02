@@ -1,2 +1,2 @@
-from .cybershuttle import CybershuttleAPI
-from .slurm import SlurmAPI
+from cybershuttle_provisioners.api.cybershuttle import CybershuttleAPI
+from cybershuttle_provisioners.api.slurm import SlurmAPI

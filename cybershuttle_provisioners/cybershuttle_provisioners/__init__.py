@@ -4,7 +4,7 @@ import json
 from os.path import dirname
 from pathlib import Path
 
-__template_dir__ = Path(dirname(__file__)) / "templates"
+TEMPLATE_DIR = Path(dirname(__file__)) / "templates"
 
 
 def jsonify(data: dict) -> str:
@@ -12,6 +12,6 @@ def jsonify(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False)
 
 
-from .cybershuttle import CybershuttleProvisioner
-from .slurm_local import LocalSlurmProvisioner
-from .slurm_remote import RemoteSlurmProvisioner
+from cybershuttle_provisioners.cybershuttle import CybershuttleProvisioner
+from cybershuttle_provisioners.slurm_local import LocalSlurmProvisioner
+from cybershuttle_provisioners.slurm_remote import RemoteSlurmProvisioner

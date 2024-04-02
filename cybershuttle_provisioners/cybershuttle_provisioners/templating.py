@@ -5,8 +5,8 @@ from shutil import copyfile
 
 from pexpect import pxssh
 
-from . import __template_dir__
-from .exceptions import *
+from cybershuttle_provisioners.__init__ import TEMPLATE_DIR
+from cybershuttle_provisioners.exceptions import *
 
 
 class Color:
@@ -32,7 +32,7 @@ class Color:
 
 class ScriptTemplate:
 
-    template_directory = __template_dir__
+    template_directory = TEMPLATE_DIR
 
     def __init__(self, template: Path | None = None):
         super().__init__()

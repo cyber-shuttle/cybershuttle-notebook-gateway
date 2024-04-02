@@ -3,7 +3,7 @@ from logging import Logger
 from subprocess import PIPE, Popen, TimeoutExpired, check_output
 from typing import Any
 
-from . import APIBase
+from cybershuttle_gateway.api import APIBase
 
 
 class SlurmAPI(APIBase):

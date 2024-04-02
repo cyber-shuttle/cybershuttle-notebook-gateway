@@ -1,11 +1,11 @@
 import json
 
 import msgpack
-from flask import Flask, request
+from flask import Flask, request, render_template
 
-from . import __template_dir__
-from .api import SlurmAPI
-from .typing import ProvisionRequest
+from cybershuttle_gateway.__init__ import TEMPLATE_DIR
+from cybershuttle_gateway.api import SlurmAPI
+from cybershuttle_gateway.typing import ProvisionRequest
 
 app = Flask(__name__)
 state_var: dict[str, dict] = {}
@@ -20,7 +20,7 @@ def jsonify(data: dict) -> str:
 
 @app.route("/")
 def hello():
-    return "Hello World!"
+    return render_template('index.html')
 
 
 @app.route("/status/<job_id>", methods=["GET"])
@@ -107,7 +107,7 @@ def provision_kernel(method_name: str, channel_name: str):
     arg_lmod_modules = "module load " + " ".join(data.lmod_modules) if len(data.lmod_modules) else ""
     arg_connection_info = jsonify(data.connection_info)
 
-    with open(__template_dir__ / "sbatch.sh", "r") as f:
+    with open(TEMPLATE_DIR / "sbatch.sh", "r") as f:
         job_script = f.read().format(
             SBATCH_OPTS=arg_sbatch_opts,
             CONNECTION_INFO=arg_connection_info,

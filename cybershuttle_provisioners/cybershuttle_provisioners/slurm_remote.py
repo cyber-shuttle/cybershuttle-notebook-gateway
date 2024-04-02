@@ -8,8 +8,8 @@ from jupyter_client.connect import KernelConnectionInfo, LocalPortCache
 from jupyter_client.localinterfaces import is_local_ip, local_ips
 from jupyter_client.provisioning.provisioner_base import KernelProvisionerBase
 
-from . import __template_dir__, jsonify
-from .api import SlurmAPI
+from cybershuttle_provisioners.__init__ import TEMPLATE_DIR, jsonify
+from cybershuttle_provisioners.api import SlurmAPI
 
 
 class RemoteSlurmProvisioner(KernelProvisionerBase):
@@ -41,7 +41,7 @@ class RemoteSlurmProvisioner(KernelProvisionerBase):
     loginnode: str = traitlets.Unicode(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
     lmod_modules: list = traitlets.List(config=True)  # type: ignore
-    template_dir = __template_dir__
+    template_dir = TEMPLATE_DIR
     fwd_ports = ["stdin_port", "shell_port", "iopub_port", "hb_port", "control_port"]
 
     def _reset_state(self):
