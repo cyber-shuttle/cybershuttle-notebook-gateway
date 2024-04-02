@@ -29,7 +29,7 @@ class SlurmAPI(APIBase):
         prefix = self.ssh_prefix.copy()
         if len(prefix) > 0:
             prefix.append("-T")
-        poll_command = prefix + ["bash", "-c", f"\"squeue -h -j {job_id} -o '%T %B %S'\""]
+        poll_command = prefix + ["bash", "-c", f"squeue -h -j {job_id} -o '%T %B %S'"]
         self.log.debug(f"poll command: {' '.join(poll_command)}")
         state = "UNKNOWN"
         node = eta = stdout = ""
@@ -51,7 +51,7 @@ class SlurmAPI(APIBase):
 
         """
 
-        signal_cmd = self.ssh_prefix + ["bash", "--login", "-c", f'"scancel -s {signum} {job_id}"']
+        signal_cmd = self.ssh_prefix + ["bash", "--login", "-c", f"scancel -s {signum} {job_id}"]
         signal_cmd_str = " ".join(signal_cmd)
         self.log.info(f"signaling kernel job ({job_id}): {signal_cmd_str}")
         status = None
@@ -71,7 +71,7 @@ class SlurmAPI(APIBase):
         """
 
         # build spawn_cmd
-        spawn_cmd = self.ssh_prefix + ["bash", "--login", "-c", '"sbatch --parsable"']
+        spawn_cmd = self.ssh_prefix + ["bash", "--login", "-c", "sbatch --parsable"]
         spawn_cmd_str = " ".join(spawn_cmd)
         self.log.info(f"Launching Kernel: {spawn_cmd_str}")
 
