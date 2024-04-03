@@ -40,13 +40,13 @@ class CybershuttleAPI:
         r = requests.post(f"{self.url}/signal/{job_id}", data=msgpack.dumps(dict(signum=signum)))
         return r.status_code == 200
 
-    def launch_job(self, job_config: dict[str, Any], method: str, transport: str) -> int:
+    def launch_job(self, job_config: dict[str, Any]) -> int:
         """
         Launch a new job and return its ID.
 
         """
         self.log.warn(job_config)
-        r = requests.post(f"{self.url}/provision/{method}/{transport}", data=msgpack.dumps(job_config))
+        r = requests.post(f"{self.url}/provision", data=msgpack.dumps(job_config))
         if r.status_code == 200:
             data: dict = r.json()  # type: ignore
             return data["job_id"]

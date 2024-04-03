@@ -33,14 +33,11 @@ class CybershuttleProvisioner(KernelProvisionerBase):
     max_retries: int = 100
     ports_cached = False
 
-    sbatch_flags: dict = traitlets.Dict(config=True)  # type: ignore
     gateway_url: str = traitlets.Unicode(config=True)  # type: ignore
-    method: str = traitlets.Unicode(config=True)  # type: ignore
+    cluster: str = traitlets.Unicode(config=True)  # type: ignore
     transport: str = traitlets.Unicode(config=True)  # type: ignore
-    proxyjump: str = traitlets.Unicode(config=True)  # type: ignore
-    loginnode: str = traitlets.Unicode(config=True)  # type: ignore
+    spec: dict = traitlets.Dict(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
-    lmod_modules: list = traitlets.List(config=True)  # type: ignore
     template_dir = TEMPLATE_DIR
     fwd_ports = ["stdin_port", "shell_port", "iopub_port", "hb_port", "control_port"]
 
@@ -208,7 +205,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         self._reset_state()
 
         # launch kernel
-        self.job_id = self.api.launch_job(self.job_config, method=self.method, transport=self.transport)
+        self.job_id = self.api.launch_job(self.job_config)
 
         return self.connection_info
 
@@ -305,12 +302,16 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             kernel_cmd = self.kernel_spec.argv + extra_arguments
 
         # basic kernelspec checks
-        if not self.sbatch_flags:
-            raise RuntimeError("Please provide sbatch flags to start the SLURM job with.")
-        if not self.lmod_modules:
-            raise RuntimeError("Please provide modules to load into the SLURM job.")
+        if not self.gateway_url:
+            raise RuntimeError("kernelspec is missing the cybershuttle gateway url.")
+        if not self.transport:
+            raise RuntimeError("kernelspec is missing the transport type.")
+        if not self.cluster:
+            raise RuntimeError("kernelspec is missing the cluster name.")
+        if not self.spec:
+            raise RuntimeError("kernelspec is missing the job specification.")
         if not self.username:
-            raise RuntimeError(f"Please provide a username to start the SLURM job.")
+            raise RuntimeError(f"kernelspec is missing the username.")
 
         # create provisioner api
         self.api = CybershuttleAPI(logger=self.log, url=self.gateway_url)
@@ -318,12 +319,10 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         # build job config
         self.job_config = dict(
             username=self.username,
-            loginnode=self.loginnode,
-            proxyjump=self.proxyjump,
-            sbatch_opts=self.sbatch_flags,
-            env_vars=self.kernel_spec.env,
-            exec_command=self.kernel_spec.argv,
-            lmod_modules=self.lmod_modules,
+            gateway_url=self.gateway_url,
+            cluster=self.cluster,
+            transport=self.transport,
+            spec=self.spec,
             connection_info=self.connection_info,
         )
 
