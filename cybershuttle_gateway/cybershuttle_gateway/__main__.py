@@ -1,10 +1,13 @@
+import argparse
 import json
+import os
+from pathlib import Path
 
 import msgpack
-from flask import Flask, request, render_template
+from flask import Flask, render_template, request
 
-from cybershuttle_gateway.__init__ import TEMPLATE_DIR
 from cybershuttle_gateway.api import SlurmAPI
+from cybershuttle_gateway.config import TEMPLATE_DIR
 from cybershuttle_gateway.typing import ProvisionRequest
 
 app = Flask(__name__)
@@ -19,8 +22,28 @@ def jsonify(data: dict) -> str:
 
 
 @app.route("/")
-def hello():
-    return render_template('index.html')
+def create_kernel():
+    return render_template(
+        "index.html",
+        gateway_url=request.host_url.rstrip("/"),
+        scheduler="slurm",
+        sb_cpus=1,
+        sb_mem_gb=1,
+        sb_partition="cloud",
+    )
+
+
+@app.route("/kernelspecs")
+def get_kernels():
+    from glob import glob
+
+    data = {}
+    for fp in kernel_dir.glob("*.json"):
+        kernel_name = fp.with_suffix("").name
+        with open(fp, "r") as file:
+            kernel_spec = json.load(file)
+        data[kernel_name] = kernel_spec
+    return jsonify(data)
 
 
 @app.route("/status/<job_id>", methods=["GET"])
@@ -129,4 +152,14 @@ def provision_kernel(method_name: str, channel_name: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=9000)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", "-H", type=str, default="0.0.0.0", help="Host to run gateway server")
+    parser.add_argument("--port", "-p", type=int, default=9000, help="Port to run gateway server")
+    parser.add_argument("--kernel_dir", "-d", type=str, default="~/kernelspecs", help="Port to run gateway server")
+    args = parser.parse_args()
+
+    # read kernels from fs
+    kernel_dir = Path(os.path.expandvars(args.kernel_dir)).expanduser().absolute()
+
+    app.run(host=args.host, port=args.port)

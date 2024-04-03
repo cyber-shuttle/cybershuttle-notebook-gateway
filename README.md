@@ -64,4 +64,10 @@ touch <kernel_name>/kernel.json
     }
   }
 }
+
+```
+
+### Running the Kernel Sync Process
+```bash
+python kernel_sync_daemon.py --url="http://127.0.0.1:9001" --kernel_dir="~/.local/share/jupyter/kernels"
 ```

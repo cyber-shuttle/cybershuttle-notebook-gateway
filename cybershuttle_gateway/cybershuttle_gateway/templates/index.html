@@ -12,23 +12,23 @@
         <form action="/submit" method="post">
             <div class="mb-3">
                 <label for="gateway_url" class="form-label">Gateway URL:</label>
-                <input type="text" class="form-control" id="gateway_url" name="gateway_url">
+                <input type="text" class="form-control" id="gateway_url" name="gateway_url" value="{{gateway_url}}" readonly>
             </div>
             <div class="mb-3">
                 <label for="scheduler" class="form-label">Scheduler:</label>
-                <input type="text" class="form-control" id="scheduler" name="scheduler">
-            </div>
-            <div class="mb-3">
-                <label for="login_node" class="form-label">Input 3:</label>
-                <input type="text" class="form-control" id="login_node" name="login_node">
+                <input type="text" class="form-control" id="scheduler" name="scheduler" value="{{scheduler}}" readonly>
             </div>
             <div class="mb-3">
                 <label for="sb_cpus" class="form-label">CPUs:</label>
-                <input type="number" min="0" max="32" class="form-control" id="sb_cpus" name="sb_cpus">
+                <input type="number" min="0" max="32" class="form-control" id="sb_cpus" name="sb_cpus" value="{{sb_cpus}}">
             </div>
             <div class="mb-3">
-                <label for="partition" class="form-label">Partition:</label>
-                <input type="text" class="form-control" id="partition" name="partition">
+                <label for="sb_mem_gb" class="form-label">Memory (GB):</label>
+                <input type="number" min="0" max="32" class="form-control" id="sb_mem_gb" name="sb_mem_gb" value="{{sb_mem_gb}}">
+            </div>
+            <div class="mb-3">
+                <label for="sb_partition" class="form-label">Partition:</label>
+                <input type="text" class="form-control" id="sb_partition" name="sb_partition" value="{{sb_partition}}">
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>

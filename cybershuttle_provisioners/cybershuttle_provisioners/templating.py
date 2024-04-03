@@ -5,7 +5,7 @@ from shutil import copyfile
 
 from pexpect import pxssh
 
-from cybershuttle_provisioners.__init__ import TEMPLATE_DIR
+from cybershuttle_provisioners.config import TEMPLATE_DIR
 from cybershuttle_provisioners.exceptions import *
 
 

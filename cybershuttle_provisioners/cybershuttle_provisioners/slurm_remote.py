@@ -8,8 +8,8 @@ from jupyter_client.connect import KernelConnectionInfo, LocalPortCache
 from jupyter_client.localinterfaces import is_local_ip, local_ips
 from jupyter_client.provisioning.provisioner_base import KernelProvisionerBase
 
-from cybershuttle_provisioners.__init__ import TEMPLATE_DIR, jsonify
 from cybershuttle_provisioners.api import SlurmAPI
+from cybershuttle_provisioners.config import TEMPLATE_DIR, jsonify
 
 
 class RemoteSlurmProvisioner(KernelProvisionerBase):
