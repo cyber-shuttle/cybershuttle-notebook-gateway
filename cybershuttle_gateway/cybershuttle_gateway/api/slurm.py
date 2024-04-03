@@ -29,7 +29,7 @@ class SlurmAPI(APIBase):
         prefix = self.ssh_prefix.copy()
         if len(prefix) > 0:
             prefix.append("-T")
-        poll_command = prefix + ["bash", "-c", f"squeue -h -j {job_id} -o '%T %B %S'"]
+        poll_command = prefix + ["bash", "-c", f"\"squeue -h -j {job_id} -o '%T %B %S'\""]
         self.log.debug(f"poll command: {' '.join(poll_command)}")
         state = "UNKNOWN"
         node = eta = stdout = ""

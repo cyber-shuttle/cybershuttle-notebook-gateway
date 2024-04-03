@@ -2,14 +2,16 @@ channels:
   - conda-forge
 dependencies:
   - conda-forge::python=3.10
-  - conda-forge::jupyterlab
-  - conda-forge::jupyter_kernel_gateway
   - conda-forge::pip
   - conda-forge::setuptools
-  - conda-forge::schedule
   - conda-forge::nodejs=18
+  - conda-forge::go
+  - conda-forge::socat
   - conda-forge::copier=7
   - conda-forge::jinja2-time
+  - conda-forge::schedule
+  - conda-forge::jupyterlab
+  - conda-forge::jupyter_kernel_gateway
   - pip:
       # source packages
       - "-e cybershuttle_provisioners/"
