@@ -1,6 +1,8 @@
 # Cybershuttle Notebook Gateway
 
-## Installation
+## Installing Dependencies
+
+Install the required dependencies on both localhost and remotehost
 
 ```bash
 # clone the repository
@@ -15,27 +17,41 @@ micromamba env create -n cybershuttle --file environment.yml
 micromamba activate cybershuttle
 ```
 
-### Running the Project
+### Running the System
+
+First, run the cybershuttle gateway on remotehost
 
 ```bash
-# start the cybershuttle gateway
-python -m cybershuttle_gateway
-# start jupyter lab
+# activate environment
+micromamba activate cybershuttle
+# start gateway on remotehost
+python -m cybershuttle_gateway --port=<gateway_server_port>
+```
+
+Second, run the sync daemon and jupyter lab on localhost
+
+```bash
+# activate environment
+micromamba activate cybershuttle
+# cd into project directory
+cd cybershuttle-notebook-gateway/
+# start sync daemon on localhost
+python cybershuttle_nbplugin/kernel_sync_daemon.py --url=http://<gateway_server_host>:<gateway_server_port>  --kernel_dir=<jupyter_kernelspec_dir>
+# start jupyter lab on localhost
 python -m jupyter lab
 ```
 
-### Adding New Kernels
+**HINT**: Use ```jupyter --paths``` command to find <jupyter_kernelspec_dir>. Usually the path is ```$HOME/.local/share/jupyter/kernels```
 
-```bash
-# cd to jupyter kernel directory
-cd $HOME/.local/share/jupyter/kernels
-# create new kernel
-mkdir <kernel_name>
-# add kernel.json script
-touch <kernel_name>/kernel.json
-```
 
-### Example for kernel.json
+### Creating New Kernels
+
+Open ```http://<gateway_server_host>:<gateway_server_port>/admin``` on a web browser. Next, click the "Add Kernel" button. This will open up a form. Provide the kernel specs in the form fields, and submit.
+This will create a new kernel entry on the gateway.
+Now, when the kernel sync daemon requests available kernels, it will discover the new kernel.
+
+### Example kernel.json for cybershuttle
+
 ```json
 {
   "argv": ["ipython", "kernel", "-f", "{connection_file}"],
@@ -45,7 +61,7 @@ touch <kernel_name>/kernel.json
   "metadata": {
     "kernel_provisioner": {
       "config": {
-        "gateway_url": "http://localhost:9000",
+        "gateway_url": "<gateway_server_url>",
         "method": "slurm",
         "transport": "zmq",
         "loginnode": "<hostname_of_login_node>",
@@ -64,10 +80,4 @@ touch <kernel_name>/kernel.json
     }
   }
 }
-
-```
-
-### Running the Kernel Sync Process
-```bash
-python kernel_sync_daemon.py --url="http://127.0.0.1:9001" --kernel_dir="~/.local/share/jupyter/kernels"
 ```

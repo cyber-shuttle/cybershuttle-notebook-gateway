@@ -35,7 +35,6 @@ def create_kernel():
 
 @app.route("/kernelspecs")
 def get_kernels():
-    from glob import glob
 
     data = {}
     for fp in kernel_dir.glob("*.json"):
@@ -161,5 +160,6 @@ if __name__ == "__main__":
 
     # read kernels from fs
     kernel_dir = Path(os.path.expandvars(args.kernel_dir)).expanduser().absolute()
+    print(f"using kernel_dir={kernel_dir}")
 
     app.run(host=args.host, port=args.port)
