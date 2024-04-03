@@ -111,11 +111,15 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         # give some time for job to show up in squeue
         if self.num_retries < self.max_retries:
             self.num_retries += 1
-            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=PENDING")
+            self.log.warn(
+                f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=PENDING"
+            )
             self.job_state = "PENDING"
             return None
         else:
-            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=UNKNOWN")
+            self.log.warn(
+                f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=UNKNOWN"
+            )
             self.num_retries = 0
             self.job_state = "UNKNOWN"
             return 1
@@ -314,7 +318,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             raise RuntimeError(f"kernelspec is missing the username.")
 
         # create provisioner api
-        self.api = CybershuttleAPI(logger=self.log, url=self.gateway_url)
+        self.api = CybershuttleAPI(logger=self.log, url=self.gateway_url, username=self.username)
 
         # build job config
         self.job_config = dict(

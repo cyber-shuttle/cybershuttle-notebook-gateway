@@ -64,7 +64,7 @@ class SlurmAPI(APIBase):
             status = False
         return status
 
-    def launch_job(self, job_script: str) -> int:
+    def launch_job(self, job_script: str) -> str:
         """
         Launch a SLURM job and return its ID.
 
@@ -91,7 +91,7 @@ class SlurmAPI(APIBase):
         job_id = re.search(r"(\d+)", stdout, re.IGNORECASE)
         if job_id is None:
             raise RuntimeError("Cannot find SLURM Job ID in stdout")
-        job_id = int(job_id.group(1))
+        job_id = str(job_id.group(1))
         self.log.debug(f"SLURM Job ID: {job_id}")
 
         return job_id
@@ -117,8 +117,7 @@ class SlurmAPI(APIBase):
         self,
         username: str,
         execnode: str,
-        fwd_ports: list[str],
-        connection_info: dict[str, Any],
+        port_map: list[tuple[int, int]],
         proxyjump: str = "",
         loginnode: str = "",
     ) -> Popen[bytes]:
@@ -130,9 +129,7 @@ class SlurmAPI(APIBase):
         # assertions
         assert len(username) > 0
         assert len(execnode) > 0
-        assert len(fwd_ports) > 0
-        for p in fwd_ports:
-            assert p in connection_info
+        assert len(port_map) > 0
 
         proxyjump_args = []
         if len(proxyjump) > 0 and len(loginnode) > 0:
@@ -141,9 +138,8 @@ class SlurmAPI(APIBase):
             proxyjump_args.extend(["-J", f"{username}@{loginnode}"])
 
         portfwd_args = []
-        for p in fwd_ports:
-            port = connection_info[p]
-            portfwd_args.extend(["-L", f"{port}:localhost:{port}"])
+        for (remote, local) in port_map:
+            portfwd_args.extend(["-L", f"{remote}:localhost:{local}"])
 
         ssh_command = ["ssh", "-fNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{username}@{execnode}")
