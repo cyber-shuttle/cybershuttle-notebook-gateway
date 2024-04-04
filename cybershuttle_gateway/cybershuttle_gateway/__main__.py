@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 import argparse
-import urllib.parse
 import json
+import logging
 import os
 from functools import wraps
 from pathlib import Path
+from typing import overload, Any
 
-import logging
 import msgpack
 from flask import Flask, render_template, request
 
 from cybershuttle_gateway.api import SlurmAPI
 from cybershuttle_gateway.config import TEMPLATE_DIR
-from cybershuttle_gateway.typing import JobConfig, JobState, NoUserConfigException, ProvisionRequest, UserConfig
+from cybershuttle_gateway.exceptions import NoUserConfigException
+from cybershuttle_gateway.typing import JobConfig, JobState, KernelSpec, ProvisionRequest, UserConfig
 from cybershuttle_gateway.util import generate_kernel_spec, generate_port_map, jsonify
 
 app = Flask(__name__)
@@ -24,24 +27,53 @@ def get_gateway_url():
     return request.host_url.rstrip("/")
 
 
-def get_user_config(
-    user: str,
-) -> UserConfig:
+@overload
+def get_user_config() -> dict[str, UserConfig]: ...
+
+
+@overload
+def get_user_config(user: str) -> UserConfig: ...
+
+
+def get_user_config(user: str | None = None) -> UserConfig | dict[str, UserConfig]:
     with open(config_file, "r") as f:
-        user_config = json.load(f)
-    if user not in user_config:
-        raise NoUserConfigException()
-    return UserConfig(**user_config[user])
+        user_config: dict[str, Any] = json.load(f)
+    if user is not None:
+        if user not in user_config:
+            raise NoUserConfigException()
+        data = UserConfig(**user_config[user])
+        return data
+    else:
+        dic = {}
+        for user in user_config:
+            data = UserConfig(**user_config[user])
+            dic[user] = data
+        return dic
+
+@overload
+def get_available_kernels() -> dict[tuple[str, str], KernelSpec]: ...
+
+
+@overload
+def get_available_kernels(user: str) -> dict[str, KernelSpec]: ...
 
 
 def get_available_kernels(
-    user: str,
-) -> dict[str, dict]:
-    user_config = get_user_config(user)
-    data = {}
-    for cluster_name in user_config.clusters:
-        data[cluster_name] = generate_kernel_spec(cluster_name, user, get_gateway_url())
-    return data
+    user: str | None = None,
+) -> dict[str, KernelSpec] | dict[tuple[str, str], KernelSpec]:
+    if user is not None:
+        userdata: dict[str, KernelSpec] = {}
+        u = get_user_config(user)
+        for cluster_name in u.clusters:
+            userdata[cluster_name] = generate_kernel_spec(cluster_name, user, get_gateway_url())
+        return userdata
+    else:
+        alldata: dict[tuple[str, str], KernelSpec] = {}
+        user_config = get_user_config()
+        for user, u in user_config.items():
+            for cluster_name in u.clusters:
+                alldata[(user, cluster_name)] = generate_kernel_spec(cluster_name, user, get_gateway_url())
+        return alldata
 
 
 def validate_auth(f):
@@ -59,12 +91,16 @@ def validate_auth(f):
 
 @app.route("/")
 def admin_panel():
-    username = "admin"
+    # generate params
+    gateway_url = get_gateway_url()
+    kernel_summaries = {k: v.summarize() for k, v in get_available_kernels().items()}
+    defaults = JobConfig()
+    # render UI
     return render_template(
         "index.html",
-        gateway_url=get_gateway_url(),
-        kernels=get_available_kernels(username),
-        defaults=JobConfig(),
+        gateway_url=gateway_url,
+        kernels=kernel_summaries,
+        defaults=defaults,
     )
 
 
@@ -73,7 +109,7 @@ def admin_panel():
 def get_kernels():
     username = request.args.get("user", type=str, default="")
     kernels = get_available_kernels(username)
-    return jsonify(kernels)
+    return jsonify({k: v.dict() for k, v in kernels.items()})
 
 
 @app.route("/status/<job_id>", methods=["GET"])

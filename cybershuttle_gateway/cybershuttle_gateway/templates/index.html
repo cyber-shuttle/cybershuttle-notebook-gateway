@@ -1,32 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask Bootstrap Form</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>Cybershuttle Notebook Gateway - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
+
 <body>
     <div class="container">
         <div class="row">
             <div class="col-12">
+                <h2>User Kernels</h2>
                 <table class="table">
                     <thead>
-                      <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">First</th>
-                        <th scope="col">Last</th>
-                        <th scope="col">Handle</th>
-                      </tr>
+                        <tr>
+                            <th scope="col">User</th>
+                            <th scope="col">Cluster</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Language</th>
+                            <th scope="col">Transport</th>
+                            <th scope="col">Spec</th>
+                        </tr>
                     </thead>
+                    {% for (username, cluster_name), summary in kernels.items() %}
                     <tbody>
-                      <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                      </tr>
+                        <tr>
+                            <th scope="row">{{username}}</th>
+                            <td>{{cluster_name}}</td>
+                            <td>{{summary.display_name}}</td>
+                            <td>{{summary.language}}</td>
+                            <td>{{summary.transport}}</td>
+                            <td>{{summary.spec}}</td>
+                        </tr>
                     </tbody>
+                    {% endfor %}
                 </table>
             </div>
         </div>
@@ -37,7 +47,8 @@
                 <form action="/submit" method="post">
                     <div class="mb-3">
                         <label for="gateway_url" class="form-label">Gateway URL:</label>
-                        <input type="text" class="form-control" id="gateway_url" name="gateway_url" value="{{gateway_url}}" readonly>
+                        <input type="text" class="form-control" id="gateway_url" name="gateway_url"
+                            value="{{gateway_url}}" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="kernel_name" class="form-label">Kernel Name:</label>
@@ -45,19 +56,23 @@
                     </div>
                     <div class="mb-3">
                         <label for="scheduler" class="form-label">Scheduler:</label>
-                        <input type="text" class="form-control" id="scheduler" name="scheduler" value="{{defaults.scheduler}}" readonly>
+                        <input type="text" class="form-control" id="scheduler" name="scheduler"
+                            value="{{defaults.scheduler}}" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="sb_cpus" class="form-label">CPUs:</label>
-                        <input type="number" min="0" max="32" class="form-control" id="sb_cpus" name="sb_cpus" value="{{defaults.sb_cpus}}">
+                        <input type="number" min="0" max="32" class="form-control" id="sb_cpus" name="sb_cpus"
+                            value="{{defaults.sb_cpus}}">
                     </div>
                     <div class="mb-3">
                         <label for="sb_mem_gb" class="form-label">Memory (GB):</label>
-                        <input type="number" min="0" max="32" class="form-control" id="sb_mem_gb" name="sb_mem_gb" value="{{defaults.sb_mem_gb}}">
+                        <input type="number" min="0" max="32" class="form-control" id="sb_mem_gb" name="sb_mem_gb"
+                            value="{{defaults.sb_mem_gb}}">
                     </div>
                     <div class="mb-3">
                         <label for="sb_partition" class="form-label">Partition:</label>
-                        <input type="text" class="form-control" id="sb_partition" name="sb_partition" value="{{defaults.sb_partition}}">
+                        <input type="text" class="form-control" id="sb_partition" name="sb_partition"
+                            value="{{defaults.sb_partition}}">
                     </div>
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
@@ -65,6 +80,9 @@
             <div class="col-3"></div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
 </body>
+
 </html>

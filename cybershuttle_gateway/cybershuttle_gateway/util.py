@@ -2,6 +2,8 @@ import json
 from typing import Any
 import socket
 
+from cybershuttle_gateway.typing import KernelSpec, KernelMetadata, KernelProvisionerMetadata, KernelProvisionerConfig
+
 
 def jsonify(
     data: dict,
@@ -38,25 +40,26 @@ def generate_kernel_spec(
     cluster: str,
     user: str,
     gateway_url: str,
-):
-    return {
-        "argv": ["{connection_info}"],
-        "display_name": f"cs_{cluster}",
-        "env": {},
-        "language": "python",
-        "metadata": {
-            "kernel_provisioner": {
-                "config": {
-                    "gateway_url": gateway_url,
-                    "cluster": cluster,
-                    "transport": "zmq",
-                    "spec": {
-                        "cpus-per-task": "1",
+) -> KernelSpec:
+
+    return KernelSpec(
+        argv=["{connection_info}"],
+        display_name=f"cs_{cluster}",
+        env={},
+        language="python",
+        metadata=KernelMetadata(
+            kernel_provisioner=KernelProvisionerMetadata(
+                provisioner_name="cybershuttle",
+                config=KernelProvisionerConfig(
+                    username=user,
+                    gateway_url=gateway_url,
+                    cluster=cluster,
+                    transport="zmq",
+                    spec={
+                        "cpus-per-task": 1,
                         "time": "01:00:00",
                     },
-                    "username": user,
-                },
-                "provisioner_name": "cybershuttle",
-            }
-        },
-    }
+                ),
+            )
+        ),
+    )
