@@ -1,5 +1,6 @@
 import json
 from typing import Any
+import socket
 
 
 def jsonify(
@@ -9,13 +10,27 @@ def jsonify(
     return json.dumps(data, ensure_ascii=False, indent=2)
 
 
+def get_n_free_ports(min_port: int, max_port: int, n: int):
+    choice = []
+    for port in range(min_port, max_port + 1):
+        if len(choice) == n:
+            return choice
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(("", port))
+            sock.close()
+            choice.append(port)
+        except OSError:
+            continue
+    raise IOError("not enough free ports")
+
+
 def generate_port_map(
     connection_info: dict[str, Any],
     port_names: list[str],
 ):
     remote_ports = [int(connection_info[p]) for p in port_names]
-    # TODO assign 5 random ports instead
-    local_ports = [9100, 9200, 9300, 9400, 9500]
+    local_ports = get_n_free_ports(min_port=9001, max_port=9999, n=len(remote_ports))
     return list(zip(remote_ports, local_ports))
 
 
