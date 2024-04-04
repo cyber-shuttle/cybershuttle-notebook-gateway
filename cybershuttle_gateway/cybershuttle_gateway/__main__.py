@@ -1,4 +1,5 @@
 import argparse
+import urllib.parse
 import json
 import os
 from functools import wraps
@@ -88,6 +89,7 @@ def get_kernel_status(job_id: str):
     if job_id not in state_var:
         return "Job Not Found", 404
     state = state_var[job_id]
+    hostname = host = urllib.parse.urlparse(get_gateway_url()).netloc
     assert state.api is not None
     (job_state, job_node, job_eta) = state.api.poll_job_status(int(job_id))
     if job_state == "RUNNING" and state.forwarding == False:
@@ -97,6 +99,7 @@ def get_kernel_status(job_id: str):
             port_map=state.port_map,
             proxyjump=state.cluster.proxyjump,
             loginnode=state.cluster.loginnode,
+            localnode=hostname,
         )
         state.forwarding = True
     return jsonify(dict(state=job_state, node=job_node, eta=job_eta))

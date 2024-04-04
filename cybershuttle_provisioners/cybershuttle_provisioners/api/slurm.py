@@ -119,6 +119,7 @@ class SlurmAPI:
         connection_info: dict[str, Any],
         proxyjump: str = "",
         loginnode: str = "",
+        localnode: str = "localhost",
     ) -> Popen[bytes]:
         """
         Create a process to forward ports via SSH
@@ -141,13 +142,13 @@ class SlurmAPI:
         portfwd_args = []
         for p in fwd_ports:
             port = connection_info[p]
-            portfwd_args.extend(["-L", f"{port}:localhost:{port}"])
+            portfwd_args.extend(["-L", f"{port}:{localnode}:{port}"])
 
         ssh_command = ["ssh", "-fNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{username}@{execnode}")
 
         # start port forwarding process
-        self.log.info(f"Starting SSH tunnel from {execnode} to localhost")
+        self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
         process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
         self.log.info(f"SSH tunnel is now active")

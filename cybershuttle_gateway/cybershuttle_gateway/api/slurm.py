@@ -1,7 +1,6 @@
 import re
 from logging import Logger
 from subprocess import PIPE, Popen, TimeoutExpired, check_output
-from typing import Any
 
 from cybershuttle_gateway.api import APIBase
 
@@ -120,6 +119,7 @@ class SlurmAPI(APIBase):
         port_map: list[tuple[int, int]],
         proxyjump: str = "",
         loginnode: str = "",
+        localnode: str = "localhost",
     ) -> Popen[bytes]:
         """
         Create a process to forward ports via SSH
@@ -139,13 +139,13 @@ class SlurmAPI(APIBase):
 
         portfwd_args = []
         for (remote, local) in port_map:
-            portfwd_args.extend(["-L", f"{remote}:localhost:{local}"])
+            portfwd_args.extend(["-L", f"{remote}:{localnode}:{local}"])
 
         ssh_command = ["ssh", "-fNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{username}@{execnode}")
 
         # start port forwarding process
-        self.log.info(f"Starting SSH tunnel from {execnode} to localhost")
+        self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
         process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
         self.log.info(f"SSH tunnel is now active")
