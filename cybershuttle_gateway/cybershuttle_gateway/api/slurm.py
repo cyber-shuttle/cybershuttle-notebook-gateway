@@ -142,7 +142,7 @@ class SlurmAPI(APIBase):
         for (remote, local) in port_map:
             portfwd_args.extend(["-L", f"{local}:{localnode}:{remote}"])
 
-        ssh_command = ["ssh", "-gfNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
+        ssh_command = ["ssh", "-gNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{compute_username}@{execnode}")
 
         # start port forwarding process
