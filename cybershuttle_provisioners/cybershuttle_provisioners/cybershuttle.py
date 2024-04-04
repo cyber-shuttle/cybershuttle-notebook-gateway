@@ -3,6 +3,7 @@ import signal
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 
 import traitlets
+import urllib.parse
 from jupyter_client.connect import KernelConnectionInfo, LocalPortCache
 from jupyter_client.localinterfaces import is_local_ip, local_ips
 from jupyter_client.provisioning.provisioner_base import KernelProvisionerBase
@@ -39,7 +40,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
     spec: dict = traitlets.Dict(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
     template_dir = TEMPLATE_DIR
-    fwd_ports = ["stdin_port", "shell_port", "iopub_port", "hb_port", "control_port"]
+    fwd_ports = ["shell_port", "iopub_port", "stdin_port", "hb_port", "control_port"]
 
     def _reset_state(self):
         self.job_id = None
@@ -73,7 +74,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         # poll for job state
         assert self.job_id is not None
-        state, node, eta = self.api.poll_job_status(self.job_id)
+        state, node, eta, ports = self.api.poll_job_status(self.job_id)
 
         # case 1 - running state
         if state == "RUNNING":
@@ -86,10 +87,8 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             if self.proc_portfwd is None:
                 # start port forwarding process
                 assert self.exec_node is not None
-                self.proc_portfwd = self.api.start_forwarding(
-                    job_id=self.job_id,
-                    connection_info=self.connection_info,
-                )
+                # commented in favor of directly updating connection_info with gateway ip/ports
+                # self.proc_portfwd = self.api.start_forwarding(job_id=self.job_id)
             return None
 
         # case 2 - pending state
@@ -140,7 +139,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             # its cleanup via the blocking wait().  Callers are responsible for
             # issuing calls to wait() using a timeout (see kill()).
             while await self.poll() is None:  # type:ignore[unreachable]
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.5)
 
         # job is no longer alive, wait and clear port forwarding process
         if self.proc_portfwd is not None:
@@ -210,6 +209,22 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         # launch kernel
         self.job_id = self.api.launch_job(self.job_config)
+
+        # get ports
+        while True:
+            state, node, eta, ports = self.api.poll_job_status(self.job_id)
+            if state != "RUNNING":
+                await asyncio.sleep(0.5)
+            else:
+                break
+
+        # update connection info with new ip / ports
+        patch = {}
+        patch["ip"] = urllib.parse.urlparse(str(self.job_config.get("gateway_url"))).netloc
+        for i, name in enumerate(self.fwd_ports):
+            patch[name] = ports[i][1]
+        self.connection_info.update(patch)
+        self.log.info("updated connection info: %s", self.connection_info)
 
         return self.connection_info
 

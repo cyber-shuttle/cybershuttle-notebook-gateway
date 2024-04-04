@@ -15,7 +15,7 @@ class CybershuttleAPI:
         self.log = logger
         self.username = username
 
-    def poll_job_status(self, job_id: int) -> tuple[str, str, str]:
+    def poll_job_status(self, job_id: int) -> tuple[str, str, str, list[tuple[int, int]]]:
         """
         Checks if job is still running.
 
@@ -31,11 +31,14 @@ class CybershuttleAPI:
         )
         state = "UNKNOWN"
         node = eta = ""
+        ports = []
         if r.status_code == 200:
             data = r.json()
             state, node, eta = data["state"], data["node"], data["eta"]
+            if "ports" in data:
+                ports = data["ports"]
 
-        return state, node, eta
+        return state, node, eta, ports
 
     def signal_job(self, job_id: int, signum: int) -> bool:
         """
@@ -68,7 +71,6 @@ class CybershuttleAPI:
     def start_forwarding(
         self,
         job_id: int,
-        connection_info: dict[str, Any],
     ) -> Popen[bytes]:
         """
         Create a process to forward remote job ports to local
