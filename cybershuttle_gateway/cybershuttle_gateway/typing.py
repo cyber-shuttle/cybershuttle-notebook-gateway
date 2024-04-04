@@ -22,6 +22,7 @@ class ClusterConfig(BaseModel):
     argv: list[str]
     env: dict[str, Any]
     username: str
+    compute_username: str
     lmod_modules: list[str]
 
 

@@ -115,6 +115,7 @@ class SlurmAPI(APIBase):
     def start_forwarding(
         self,
         username: str,
+        compute_username: str,
         execnode: str,
         port_map: list[tuple[int, int]],
         proxyjump: str = "",
@@ -139,10 +140,10 @@ class SlurmAPI(APIBase):
 
         portfwd_args = []
         for (remote, local) in port_map:
-            portfwd_args.extend(["-L", f"{remote}:{localnode}:{local}"])
+            portfwd_args.extend(["-L", f"{local}:{localnode}:{remote}"])
 
-        ssh_command = ["ssh", "-fNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
-        ssh_command.append(f"{username}@{execnode}")
+        ssh_command = ["ssh", "-gfNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
+        ssh_command.append(f"{compute_username}@{execnode}")
 
         # start port forwarding process
         self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")

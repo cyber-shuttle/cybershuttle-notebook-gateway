@@ -17,7 +17,7 @@ from cybershuttle_gateway.util import generate_kernel_spec, generate_port_map, j
 app = Flask(__name__)
 app.logger.setLevel(logging.DEBUG)
 state_var: dict[str, JobState] = {}
-fwd_ports = ["stdin_port", "shell_port", "iopub_port", "hb_port", "control_port"]
+fwd_ports = ["shell_port", "iopub_port", "stdin_port", "hb_port", "control_port"]
 
 
 def get_gateway_url():
@@ -95,11 +95,12 @@ def get_kernel_status(job_id: str):
     if job_state == "RUNNING" and state.forwarding == False:
         state.api.start_forwarding(
             username=state.cluster.username,
+            compute_username=state.cluster.compute_username,
             execnode=job_node,
             port_map=state.port_map,
             proxyjump=state.cluster.proxyjump,
             loginnode=state.cluster.loginnode,
-            localnode=hostname,
+            # localnode=hostname,
         )
         state.forwarding = True
     return jsonify(dict(state=job_state, node=job_node, eta=job_eta))

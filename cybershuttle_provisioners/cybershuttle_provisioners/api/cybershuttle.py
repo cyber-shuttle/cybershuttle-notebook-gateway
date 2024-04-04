@@ -85,7 +85,7 @@ class CybershuttleAPI:
         ports: list[tuple[int, int]] = r.json()["port_map"]
         portfwd_cmd = []
         for local_port, remote_port in ports:
-            portfwd_cmd.extend(["socat", f"TCP4-LISTEN:{local_port},reuseaddr,fork", f"TCP4:{host}:{remote_port}", "|"])
+            portfwd_cmd.extend(["socat", f"TCP-LISTEN:{local_port},fork", f"TCP:{host}:{remote_port}", "|"])
         portfwd_cmd.pop()  # remove last pipe
         portfwd_cmd_str = " ".join(portfwd_cmd)
         self.log.info(f"Port forward command: {portfwd_cmd_str}")
