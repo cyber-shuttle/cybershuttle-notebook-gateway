@@ -39,6 +39,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
     transport: str = traitlets.Unicode(config=True)  # type: ignore
     spec: dict = traitlets.Dict(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
+    workdir: str = traitlets.Unicode(config=True)  # type: ignore
     template_dir = TEMPLATE_DIR
     fwd_ports = ["shell_port", "iopub_port", "stdin_port", "hb_port", "control_port"]
 
@@ -343,6 +344,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         # build job config
         self.job_config = dict(
             username=self.username,
+            workdir=self.workdir,
             gateway_url=self.gateway_url,
             cluster=self.cluster,
             transport=self.transport,

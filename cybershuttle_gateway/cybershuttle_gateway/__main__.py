@@ -50,6 +50,7 @@ def get_user_config(user: str | None = None) -> UserConfig | dict[str, UserConfi
             dic[user] = data
         return dic
 
+
 @overload
 def get_available_kernels() -> dict[tuple[str, str], KernelSpec]: ...
 
@@ -64,15 +65,15 @@ def get_available_kernels(
     if user is not None:
         userdata: dict[str, KernelSpec] = {}
         u = get_user_config(user)
-        for cluster_name in u.clusters:
-            userdata[cluster_name] = generate_kernel_spec(cluster_name, user, get_gateway_url())
+        for cluster_name, c in u.clusters.items():
+            userdata[cluster_name] = generate_kernel_spec(cluster_name, user, c.workdir, get_gateway_url())
         return userdata
     else:
         alldata: dict[tuple[str, str], KernelSpec] = {}
         user_config = get_user_config()
         for user, u in user_config.items():
-            for cluster_name in u.clusters:
-                alldata[(user, cluster_name)] = generate_kernel_spec(cluster_name, user, get_gateway_url())
+            for cluster_name, c in u.clusters.items():
+                alldata[(user, cluster_name)] = generate_kernel_spec(cluster_name, user, c.workdir, get_gateway_url())
         return alldata
 
 
@@ -198,6 +199,7 @@ def provision_kernel():
     arg_exec_command = " ".join(cluster_cfg.argv).format(connection_file="$tmpfile")
     arg_lmod_modules = "module load " + " ".join(cluster_cfg.lmod_modules) if len(cluster_cfg.lmod_modules) else ""
     arg_connection_info = jsonify(data.connection_info)
+    arg_workdir_command = f"cd {data.workdir}" if data.workdir else ""
 
     with open(TEMPLATE_DIR / "sbatch.sh", "r") as f:
         job_script = f.read().format(
@@ -205,9 +207,10 @@ def provision_kernel():
             CONNECTION_INFO=arg_connection_info,
             ENV_VARS=arg_env_vars,
             LMOD_MODULES=arg_lmod_modules,
+            WORKDIR_COMMAND=arg_workdir_command,
             EXEC_COMMAND=arg_exec_command,
         )
-
+    
     api = SlurmAPI(app.logger)
     api.ssh_prefix = api.build_ssh_command(cluster_cfg.username, cluster_cfg.loginnode, cluster_cfg.proxyjump)
     job_id = api.launch_job(job_script)
@@ -222,6 +225,7 @@ def provision_kernel():
         connection_info=data.connection_info,
         port_map=generate_port_map(data.connection_info, fwd_ports),
         forwarding=False,
+        workdir=data.workdir,
     )
     return jsonify(dict(job_id=job_id))
 

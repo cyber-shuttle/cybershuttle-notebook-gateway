@@ -39,6 +39,7 @@ def generate_port_map(
 def generate_kernel_spec(
     cluster: str,
     user: str,
+    workdir: str,
     gateway_url: str,
 ) -> KernelSpec:
 
@@ -59,6 +60,7 @@ def generate_kernel_spec(
                         "cpus-per-task": 1,
                         "time": "01:00:00",
                     },
+                    workdir=workdir,
                 ),
             )
         ),

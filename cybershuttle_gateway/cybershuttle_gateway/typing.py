@@ -11,6 +11,7 @@ class KernelProvisionerConfig(BaseModel):
     cluster: str
     transport: str
     spec: dict[str, Any]
+    workdir: str = Field(default="")
 
 
 class KernelProvisionerMetadata(BaseModel):
@@ -64,6 +65,7 @@ class ClusterConfig(BaseModel):
     username: str = ""
     compute_username: str = ""
     lmod_modules: list[str] = []
+    workdir: str = Field(default="")
 
 
 class UserConfig(BaseModel):
@@ -80,6 +82,7 @@ class JobState(BaseModel):
     connection_info: dict[str, Any] = Field(exclude=True)
     port_map: list[tuple[int, int]]
     forwarding: bool
+    workdir: str
 
     class Config:
         arbitrary_types_allowed = True
