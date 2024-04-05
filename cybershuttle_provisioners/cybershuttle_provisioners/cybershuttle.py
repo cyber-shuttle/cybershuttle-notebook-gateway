@@ -142,7 +142,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             # its cleanup via the blocking wait().  Callers are responsible for
             # issuing calls to wait() using a timeout (see kill()).
             while await self.poll() is None:  # type:ignore[unreachable]
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(5.0)
 
         # job is no longer alive, finish forwarding process
         if self.proc_portfwd is not None:
@@ -219,7 +219,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         while True:
             state, node, eta, ports = self.api.poll_job_status(self.job_id)
             if state != "RUNNING":
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(5.0)
             else:
                 break
 
