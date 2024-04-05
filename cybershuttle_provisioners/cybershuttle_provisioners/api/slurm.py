@@ -49,7 +49,7 @@ class SlurmAPI:
 
         """
 
-        signal_cmd = self.ssh_prefix + ["bash", "--login", "-c", f"scancel -s {signum} {job_id}"]
+        signal_cmd = self.ssh_prefix + ["bash", "-c", f"\"scancel -s {signum} {job_id}\""]
         signal_cmd_str = " ".join(signal_cmd)
         self.log.info(f"signaling kernel job ({job_id}): {signal_cmd_str}")
         status = None
@@ -69,7 +69,7 @@ class SlurmAPI:
         """
 
         # build spawn_cmd
-        spawn_cmd = self.ssh_prefix + ["bash", "--login", "-c", "sbatch --parsable"]
+        spawn_cmd = self.ssh_prefix + ["bash", "-c", "sbatch --parsable"]
         spawn_cmd_str = " ".join(spawn_cmd)
         self.log.info(f"Launching Kernel: {spawn_cmd_str}")
 

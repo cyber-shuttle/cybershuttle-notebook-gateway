@@ -51,7 +51,7 @@ class SlurmAPI(APIBase):
 
         """
 
-        signal_cmd = self.ssh_prefix + ["bash", "--login", "-c", f"scancel -s {signum} {job_id}"]
+        signal_cmd = self.ssh_prefix + ["bash", "-c", f"\"scancel -s {signum} {job_id}\""]
         signal_cmd_str = " ".join(signal_cmd)
         self.log.info(f"signaling kernel job ({job_id}): {signal_cmd_str}")
         status = None
@@ -76,7 +76,7 @@ class SlurmAPI(APIBase):
         """
 
         # build spawn_cmd
-        spawn_cmd = self.ssh_prefix + ["bash", "--login", "-c", "sbatch --parsable"]
+        spawn_cmd = self.ssh_prefix + ["bash", "-c", "sbatch --parsable"]
         spawn_cmd_str = " ".join(spawn_cmd)
         self.log.info(f"Launching Kernel: {spawn_cmd_str}")
 
@@ -148,12 +148,16 @@ class SlurmAPI(APIBase):
         for remote, local in port_map:
             portfwd_args.extend(["-L", f"*:{local}:{localnode}:{remote}"])
 
+        # NOTE first, clear known-hosts entry if exists
+        clear_cmd = ["ssh-keygen", "-R", execnode]
+        check_output(clear_cmd).decode().strip()
+        self.log.info(f"Cleared known-hosts entries for {execnode}")
+
         ssh_command = ["ssh", "-gNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{compute_username}@{execnode}")
 
         # start port forwarding process
         self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
-        process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
+        self.portfwd_process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
         self.log.info(f"SSH tunnel is now active")
-        self.portfwd_process = process

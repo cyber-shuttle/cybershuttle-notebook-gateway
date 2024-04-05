@@ -84,12 +84,14 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             # at this point both exec_node and connection_info must exist
             assert self.exec_node is not None
             assert self.connection_info is not None
-            if self.proc_portfwd is None:
+            
+            # NOTE not needed when connection_info is directly updated with gateway ip/ports
+            # if self.proc_portfwd is None:
                 # start port forwarding process
-                assert self.exec_node is not None
-                # commented in favor of directly updating connection_info with gateway ip/ports
-                self.proc_portfwd = self.api.start_forwarding(job_id=self.job_id)
-                self.log.info(f"Started forwarding from gateway server to localhost")
+                # assert self.exec_node is not None
+                # self.proc_portfwd = self.api.start_forwarding(job_id=self.job_id)
+                # self.log.info(f"Started forwarding from gateway server to localhost")
+            
             return None
 
         # case 2 - pending state
