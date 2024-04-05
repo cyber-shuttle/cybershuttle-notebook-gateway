@@ -88,7 +88,8 @@ class CybershuttleProvisioner(KernelProvisionerBase):
                 # start port forwarding process
                 assert self.exec_node is not None
                 # commented in favor of directly updating connection_info with gateway ip/ports
-                # self.proc_portfwd = self.api.start_forwarding(job_id=self.job_id)
+                self.proc_portfwd = self.api.start_forwarding(job_id=self.job_id)
+                self.log.info(f"Started forwarding from gateway server to localhost")
             return None
 
         # case 2 - pending state
@@ -134,16 +135,18 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         """
         ret = 0
         if self.awaiting_shutdown:
-            # Use busy loop at 100ms intervals, polling until the process is
+            # Use busy loop at 1 second intervals, polling until the process is
             # not alive.  If we find the process is no longer alive, complete
             # its cleanup via the blocking wait().  Callers are responsible for
             # issuing calls to wait() using a timeout (see kill()).
             while await self.poll() is None:  # type:ignore[unreachable]
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.0)
 
-        # job is no longer alive, wait and clear port forwarding process
+        # job is no longer alive, finish forwarding process
         if self.proc_portfwd is not None:
-            ret = self.proc_portfwd.wait()
+            self.proc_portfwd.terminate()
+            self.log.info(f"Stopped forwarding from gateway server to localhost")
+            ret = 0
             # Make sure all the fds get closed.
             for attr in ["stdout", "stderr", "stdin"]:
                 fid = getattr(self.proc_portfwd, attr)
@@ -214,7 +217,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         while True:
             state, node, eta, ports = self.api.poll_job_status(self.job_id)
             if state != "RUNNING":
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.0)
             else:
                 break
 

@@ -11,6 +11,7 @@ class SlurmAPI(APIBase):
         super().__init__()
         self.log = logger
         self.ssh_prefix = ssh_prefix
+        self.portfwd_process = None
 
     def poll_job_status(self, job_id: int) -> tuple[str, str, str]:
         """
@@ -61,6 +62,11 @@ class SlurmAPI(APIBase):
         except:
             self.log.error(f"error when signaling kernel job")
             status = False
+        if self.portfwd_process is not None:
+            self.portfwd_process.terminate()
+            self.portfwd_process = None
+            self.log.info(f"SSH tunnel is now closed")
+
         return status
 
     def launch_job(self, job_script: str) -> str:
@@ -121,7 +127,7 @@ class SlurmAPI(APIBase):
         proxyjump: str = "",
         loginnode: str = "",
         localnode: str = "localhost",
-    ) -> Popen[bytes]:
+    ) -> None:
         """
         Create a process to forward ports via SSH
 
@@ -139,8 +145,8 @@ class SlurmAPI(APIBase):
             proxyjump_args.extend(["-J", f"{username}@{loginnode}"])
 
         portfwd_args = []
-        for (remote, local) in port_map:
-            portfwd_args.extend(["-L", f"{local}:{localnode}:{remote}"])
+        for remote, local in port_map:
+            portfwd_args.extend(["-L", f"*:{local}:{localnode}:{remote}"])
 
         ssh_command = ["ssh", "-gNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{compute_username}@{execnode}")
@@ -150,4 +156,4 @@ class SlurmAPI(APIBase):
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
         process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
         self.log.info(f"SSH tunnel is now active")
-        return process
+        self.portfwd_process = process
