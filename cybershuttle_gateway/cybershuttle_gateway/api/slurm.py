@@ -43,6 +43,7 @@ class SlurmAPI(APIBase):
         if len(splits := stdout.split(" ")) == 3:
             state, node, eta = splits
 
+        self.log.info(f"returning job state: {state}, {node}, {eta}")
         return state, node, eta
 
     def signal_job(self, job_id: int, signum: int) -> bool:
