@@ -153,7 +153,8 @@ class SlurmAPI(APIBase):
         check_output(clear_cmd).decode().strip()
         self.log.info(f"Cleared known-hosts entries for {execnode}")
 
-        ssh_command = ["ssh", "-gNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
+        # Added Keepalive to Connections
+        ssh_command = ["ssh", "-gNA", "-o", "StrictHostKeyChecking=no", "-o", "ServerAliveInterval=30", "-o", "ServerAliveCountMax=5"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{compute_username}@{execnode}")
 
         # start port forwarding process
