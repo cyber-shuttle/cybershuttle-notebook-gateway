@@ -7,6 +7,7 @@ import os
 from functools import wraps
 from pathlib import Path
 from typing import overload, Any
+from signal import SIGTERM, SIGKILL
 
 import msgpack
 from flask import Flask, render_template, request
@@ -158,6 +159,11 @@ def signal_kernel(job_id: str):
     signum = payload["signum"]
     assert info.api is not None
     result = info.api.signal_job(int(job_id), signum)
+
+    if signum in [SIGTERM, SIGKILL] and result == True:
+        print(f"cleaning up resources for job {job_id}")
+        state_var.pop(job_id, None)
+
     return jsonify(dict(success=result))
 
 
