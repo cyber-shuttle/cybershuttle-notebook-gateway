@@ -49,13 +49,13 @@ class SlurmAPI:
 
         """
 
-        signal_cmd = self.ssh_prefix + ["bash", "-c", f"\"scancel -s {signum} {job_id}\""]
+        signal_cmd = self.ssh_prefix + ["bash", "-c", f"\"scancel -b -s {signum} {job_id}\""]
         signal_cmd_str = " ".join(signal_cmd)
         self.log.info(f"signaling kernel job ({job_id}): {signal_cmd_str}")
         status = None
         try:
-            check_output(signal_cmd).decode().strip()
-            self.log.info(f"kernel job signaled ({job_id})")
+            stdout = check_output(signal_cmd).decode().strip()
+            self.log.info(f"kernel job signaled ({job_id}) - {stdout}")
             status = True
         except:
             self.log.error(f"error when signaling kernel job")

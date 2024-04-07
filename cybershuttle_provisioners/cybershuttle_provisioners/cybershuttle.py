@@ -330,7 +330,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         # point kernelmanager ip to gateway_ip
         km = self.parent
         assert km is not None
-        km.ip = urllib.parse.urlparse(gateway_url).netloc
+        km.ip = urllib.parse.urlparse(gateway_url).netloc.split(":")[0]
 
         # write returned ports to connection file
         for i, name in enumerate(self.fwd_ports):
