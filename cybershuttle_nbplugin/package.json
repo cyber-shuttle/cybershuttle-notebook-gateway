@@ -59,6 +59,7 @@
         "@jupyterlab/application": "^4.1.6",
         "@jupyterlab/apputils": "^4.2.6",
         "@jupyterlab/launcher": "^4.1.6",
+        "@jupyterlab/notebook": "^4.1.6",
         "@jupyterlab/services": "^7.1.6",
         "@jupyterlab/settingregistry": "^4.1.6",
         "@lumino/widgets": "^2.3.2",
