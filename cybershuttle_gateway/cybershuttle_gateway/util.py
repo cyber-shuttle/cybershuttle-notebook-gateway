@@ -5,11 +5,10 @@ import socket
 from cybershuttle_gateway.typing import KernelSpec, KernelMetadata, KernelProvisionerMetadata, KernelProvisionerConfig
 
 
-def jsonify(
+def sanitize(
     data: dict,
-) -> str:
-    data = {k: v.decode() if isinstance(v, bytes) else v for k, v in data.items()}
-    return json.dumps(data, ensure_ascii=False, indent=2)
+) -> dict:
+    return {k: v.decode() if isinstance(v, bytes) else v for k, v in data.items()}
 
 
 def get_n_free_ports(min_port: int, max_port: int, n: int):

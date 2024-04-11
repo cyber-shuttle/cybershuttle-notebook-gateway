@@ -6,17 +6,17 @@ import logging
 import os
 from functools import wraps
 from pathlib import Path
-from typing import overload, Any
-from signal import SIGTERM, SIGKILL
+from signal import SIGKILL, SIGTERM
+from typing import Any, overload
 
 import msgpack
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, render_template, request
 
 from cybershuttle_gateway.api import SlurmAPI
 from cybershuttle_gateway.config import TEMPLATE_DIR
 from cybershuttle_gateway.exceptions import NoUserConfigException
 from cybershuttle_gateway.typing import JobConfig, JobState, KernelSpec, ProvisionRequest, UserConfig
-from cybershuttle_gateway.util import generate_kernel_spec, generate_port_map, jsonify
+from cybershuttle_gateway.util import generate_kernel_spec, generate_port_map, sanitize
 
 app = Flask(__name__)
 app.logger.setLevel(logging.DEBUG)
@@ -90,6 +90,11 @@ def validate_auth(f):
 
     return wrapper
 
+@app.after_request
+def add_header(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
 
 @app.route("/")
 def admin_panel():
@@ -111,7 +116,7 @@ def admin_panel():
 def get_kernels():
     username = request.args.get("user", type=str, default="")
     kernels = get_available_kernels(username)
-    return jsonify({k: v.dict() for k, v in kernels.items()})
+    return jsonify(sanitize({k: v.dict() for k, v in kernels.items()}))
 
 
 @app.route("/status/<job_id>", methods=["GET"])
@@ -139,7 +144,7 @@ def get_kernel_status(job_id: str):
             loginnode=state.cluster.loginnode,
         )
         state.forwarding = True
-    return jsonify(dict(state=job_state, node=job_node, eta=job_eta, ports=state.port_map))
+    return jsonify(sanitize(dict(state=job_state, node=job_node, eta=job_eta, ports=state.port_map)))
 
 
 @app.route("/signal/<job_id>", methods=["POST"])
@@ -164,7 +169,7 @@ def signal_kernel(job_id: str):
         print(f"cleaning up resources for job {job_id}")
         state_var.pop(job_id, None)
 
-    return jsonify(dict(success=result))
+    return jsonify(sanitize(dict(success=result)))
 
 
 @app.route("/info/<job_id>", methods=["GET"])
@@ -204,7 +209,7 @@ def provision_kernel():
     arg_env_vars = "\n".join([f"export {k}={v}" for k, v in cluster_cfg.env.items()])
     arg_exec_command = " ".join(cluster_cfg.argv).format(connection_file="$tmpfile")
     arg_lmod_modules = "module load " + " ".join(cluster_cfg.lmod_modules) if len(cluster_cfg.lmod_modules) else ""
-    arg_connection_info = jsonify(data.connection_info)
+    arg_connection_info = json.dumps(sanitize(data.connection_info))
     arg_workdir_command = f"cd {data.workdir}" if data.workdir else ""
 
     with open(TEMPLATE_DIR / "sbatch.sh", "r") as f:
@@ -216,7 +221,7 @@ def provision_kernel():
             WORKDIR_COMMAND=arg_workdir_command,
             EXEC_COMMAND=arg_exec_command,
         )
-    
+
     api = SlurmAPI(app.logger)
     api.ssh_prefix = api.build_ssh_command(cluster_cfg.username, cluster_cfg.loginnode, cluster_cfg.proxyjump)
     job_id = api.launch_job(job_script)
@@ -233,7 +238,7 @@ def provision_kernel():
         forwarding=False,
         workdir=data.workdir,
     )
-    return jsonify(dict(job_id=job_id))
+    return jsonify(sanitize(dict(job_id=job_id)))
 
 
 if __name__ == "__main__":
