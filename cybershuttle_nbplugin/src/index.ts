@@ -77,6 +77,8 @@ async function activate_cybershuttle_launcher(
           language: 'python',
           username: 'yasith',
           workdir: args.workdir,
+          exec_path: args.exec_path,
+          user_scripts: args.user_scripts,
           spec: args.config
         };
         console.log(msg);
@@ -115,6 +117,8 @@ async function activate_cybershuttle_launcher(
           language: 'python',
           username: 'yasith',
           workdir: args.workdir,
+          exec_path: args.exec_path,
+          user_scripts: args.user_scripts,
           spec: args.config
         };
         console.log(msg);
@@ -159,11 +163,13 @@ async function activate_cybershuttle_launcher(
         const clusters = Object.keys(json);
         const cfg = json.gkeyll.metadata.kernel_provisioner.config;
         const spec = cfg.spec;
-        const workdir = String(cfg.workdir);
+        const workdir = String(cfg.workdir || ".");
+        const exec_path = String(cfg.exec_path || "");
+        const user_scripts = String(cfg.user_scripts || "");
         // create dialog to provide kernel specs
         const dialog = new Dialog<any>({
           title: 'Select Kernel',
-          body: new CybershuttleKernelLauncher(clusters, workdir, spec),
+          body: new CybershuttleKernelLauncher(clusters, workdir, exec_path, user_scripts, spec),
           buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Launch' })]
         });
         // handle dialog output

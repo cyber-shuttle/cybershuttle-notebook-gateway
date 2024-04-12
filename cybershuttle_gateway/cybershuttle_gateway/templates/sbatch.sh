@@ -8,6 +8,11 @@ cat <<EOF >$tmpfile
 EOF
 
 {ENV_VARS}
+
 {LMOD_MODULES}
+
 {WORKDIR_COMMAND}
+
+{USER_SCRIPTS}
+
 {EXEC_COMMAND}

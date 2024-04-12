@@ -12,6 +12,8 @@ class KernelProvisionerConfig(BaseModel):
     transport: str
     spec: dict[str, Any]
     workdir: str = Field(default="")
+    exec_path: str = Field(default="")
+    user_scripts: str = Field(default="")
 
 
 class KernelProvisionerMetadata(BaseModel):
@@ -57,14 +59,15 @@ class ProvisionRequest(KernelProvisionerConfig):
 
 
 class ClusterConfig(BaseModel):
-    loginnode: str = ""
-    proxyjump: str = ""
-    scheduler: str = ""
-    argv: list[str] = []
-    env: dict[str, Any] = {}
-    username: str = ""
-    compute_username: str = ""
-    lmod_modules: list[str] = []
+    loginnode: str = Field(default="")
+    proxyjump: str = Field(default="")
+    scheduler: str = Field(default="")
+    exec_path: str = Field(default="")
+    argv: list[str] = Field(default=[])
+    env: dict[str, Any] = Field(default={})
+    username: str = Field(default="")
+    compute_username: str = Field(default="")
+    lmod_modules: list[str] = Field(default=[])
     workdir: str = Field(default="")
 
 
@@ -90,6 +93,6 @@ class JobState(BaseModel):
 
 class JobConfig(BaseModel):
     scheduler: str = "slurm"
-    sb_cpus: int = 1
-    sb_mem_gb: int = 1
+    sb_cpus: int = Field(default=1)
+    sb_mem_gb: int = Field(default=1)
     sb_partition: str = "cloud"

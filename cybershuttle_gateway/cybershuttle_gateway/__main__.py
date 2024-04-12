@@ -207,10 +207,11 @@ def provision_kernel():
 
     arg_sbatch_opts = "\n".join([f"#SBATCH --{k}={v}" for k, v in data.spec.items()])
     arg_env_vars = "\n".join([f"export {k}={v}" for k, v in cluster_cfg.env.items()])
-    arg_exec_command = " ".join(cluster_cfg.argv).format(connection_file="$tmpfile")
+    arg_exec_command = " ".join(cluster_cfg.argv).format(connection_file="$tmpfile", exec_path=data.exec_path or cluster_cfg.exec_path)
     arg_lmod_modules = "module load " + " ".join(cluster_cfg.lmod_modules) if len(cluster_cfg.lmod_modules) else ""
     arg_connection_info = json.dumps(sanitize(data.connection_info))
     arg_workdir_command = f"cd {data.workdir}" if data.workdir else ""
+    arg_user_scripts = data.user_scripts
 
     with open(TEMPLATE_DIR / "sbatch.sh", "r") as f:
         job_script = f.read().format(
@@ -219,6 +220,7 @@ def provision_kernel():
             ENV_VARS=arg_env_vars,
             LMOD_MODULES=arg_lmod_modules,
             WORKDIR_COMMAND=arg_workdir_command,
+            USER_SCRIPTS=arg_user_scripts,
             EXEC_COMMAND=arg_exec_command,
         )
 

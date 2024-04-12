@@ -56,6 +56,8 @@ class RouteHandler(APIHandler):
                         "transport": "zmq",
                         "username": input_data["username"],
                         "workdir": input_data["workdir"],
+                        "exec_path": input_data["exec_path"],
+                        "user_scripts": input_data["user_scripts"],
                     },
                     "provisioner_name": "cybershuttle",
                 }
