@@ -17,7 +17,7 @@ micromamba env create -n cybershuttle --file environment.yml
 micromamba activate cybershuttle
 ```
 
-### Running the System
+### Part A - Running the Cybershuttle Gateway Server
 
 First, run the cybershuttle gateway on remotehost
 
@@ -28,56 +28,26 @@ micromamba activate cybershuttle
 python -m cybershuttle_gateway --port=<gateway_server_port>
 ```
 
-Second, run the sync daemon and jupyter lab on localhost
+#### Configuring the Notebook Gateway (Admin UI)
 
+Open `http://<gateway_server_host>:<gateway_server_port>` on a web browser. Next, click the "Add Cluster" button. This will open up a form. Provide the cluster specs in the form fields, and submit.
+This will create a new cluster entry on the gateway.
+Once created, the jupyterlab extension will start displaying this cluster as an option.
+
+### Part B - Running Jupyter Lab + Cybershuttle Extension
+
+If you installed using micromamba, both the cybershuttle extension and jupyter lab will be already installed.
 ```bash
 # activate environment
 micromamba activate cybershuttle
-# cd into project directory
-cd cybershuttle-notebook-gateway/
-# start sync daemon on localhost
-python cybershuttle_nbplugin/kernel_sync_daemon.py --url=http://<gateway_server_host>:<gateway_server_port>  --kernel_dir=<jupyter_kernelspec_dir>
 # start jupyter lab on localhost
 python -m jupyter lab
 ```
 
-**HINT**: Use ```jupyter --paths``` command to find <jupyter_kernelspec_dir>. Usually the path is ```$HOME/.local/share/jupyter/kernels```
+You can also build and run a container from the provided Dockerfile.
 
+```bash
+docker buildx build -t cybershuttle-notebook:local .
+docker run -p 8888:8888 -t cybershuttle-notebook:local
 
-### Creating New Kernels
-
-Open ```http://<gateway_server_host>:<gateway_server_port>/admin``` on a web browser. Next, click the "Add Kernel" button. This will open up a form. Provide the kernel specs in the form fields, and submit.
-This will create a new kernel entry on the gateway.
-Now, when the kernel sync daemon requests available kernels, it will discover the new kernel.
-
-### Example kernel.json for cybershuttle
-
-```json
-{
-  "argv": ["ipython", "kernel", "-f", "{connection_file}"],
-  "display_name": "cybershuttle",
-  "env": {},
-  "language": "python",
-  "metadata": {
-    "kernel_provisioner": {
-      "config": {
-        "gateway_url": "<gateway_server_url>",
-        "method": "slurm",
-        "transport": "zmq",
-        "loginnode": "<hostname_of_login_node>",
-        "proxyjump": "",
-        "lmod_modules": [],
-        "sbatch_flags": {
-          "cpus-per-task": "4",
-          "gres": "gpu:1",
-          "mem": "32G",
-          "partition": "gpu",
-          "time": "01:00:00"
-        },
-        "username": "<username>"
-      },
-      "provisioner_name": "cybershuttle"
-    }
-  }
-}
 ```
