@@ -68,7 +68,7 @@ class RouteHandler(APIHandler):
         # hardcode kernel name to "<cluster_name>" to avoid 100s of kernespecs
         kernel_uuid = input_data["cluster"]
 
-        (path / kernel_uuid).mkdir(exist_ok=True)
+        Path(path / kernel_uuid).mkdir(exist_ok=True, parents=True)
 
         with open(path / kernel_uuid / "kernel.json", "w") as f:
             json.dump(kernelspec, f)
