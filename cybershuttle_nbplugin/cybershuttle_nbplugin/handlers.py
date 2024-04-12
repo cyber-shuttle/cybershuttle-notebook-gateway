@@ -64,7 +64,9 @@ class RouteHandler(APIHandler):
 
         # save kernelspec in local directory with uuid
         path = Path(os.path.expanduser("~/.local/share/jupyter/kernels"))
-        kernel_uuid = str(uuid.uuid4())
+
+        # hardcode kernel name to "<cluster_name>" to avoid 100s of kernespecs
+        kernel_uuid = input_data["cluster"]
 
         (path / kernel_uuid).mkdir(exist_ok=True)
 

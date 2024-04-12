@@ -20,18 +20,25 @@ const KernelSpecForm = (props: KernelSpec) => {
   const [config, setConfig] = useState(props.config);
 
   const onChange = (key: string, value: any) => {
+    let output = { cluster, workdir, config }
     switch (key) {
       case 'cluster':
+        output.cluster = value
+        props.onChange(output)
         setCluster(_ => value);
         break;
       case 'workdir':
+        output.workdir = value
+        props.onChange(output)
         setWorkdir(_ => value);
         break;
       case 'config':
-        setConfig(prev => ({ ...prev, ...value }));
+        let u = { ...config, ...value }
+        output.config = u
+        props.onChange(output)
+        setConfig(_ => u);
         break;
     }
-    props.onChange({ cluster, workdir, config })
   };
   return (
     <div>
