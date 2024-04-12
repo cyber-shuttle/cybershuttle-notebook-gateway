@@ -13,6 +13,8 @@ import { Dialog } from '@jupyterlab/apputils';
 import { IDisposable } from '@lumino/disposable';
 import { CybershuttleKernelLauncher } from './kernel_launcher';
 
+import { requestAPI } from './handler';
+
 /**
  * Initialization data for the cybershuttle_nbplugin extension.
  */
@@ -69,22 +71,33 @@ async function activate_cybershuttle_launcher(
     label: 'Change to Cybershuttle Kernel',
     execute: async args => {
       try {
-        // save args to kernelspec
-        console.log(args);
+        // create kernelspec and get its name
+        const msg = {
+          cluster: args.cluster,
+          language: 'python',
+          username: 'yasith',
+          workdir: args.workdir,
+          spec: args.config
+        };
+        console.log(msg);
+        const { name } = await requestAPI<any>('/kernelspec', {
+          method: 'post',
+          body: JSON.stringify(msg)
+        });
+        console.log('created kernel spec:', name);
         // reload kernelspecs
         const services = app.serviceManager;
         await services.ready;
+        await services.kernelspecs.refreshSpecs();
         const specs = services.kernelspecs;
         await specs.ready;
-        // get kernel info
-        const kernel_name = 'gkeyll';
         // update notebook with new kernel
         const cw = app.shell.currentWidget;
         if (cw! instanceof NotebookPanel) {
           const notebookPanel = cw;
           const sessionContext = notebookPanel.sessionContext;
           await sessionContext.changeKernel({});
-          return sessionContext.changeKernel({ name: kernel_name });
+          return sessionContext.changeKernel({ name });
         }
       } catch (err) {
         console.error(err);
@@ -96,26 +109,42 @@ async function activate_cybershuttle_launcher(
     label: 'Create With Cybershuttle Kernel',
     execute: async args => {
       try {
-        // save args to kernelspec
-        console.log(args);
+        // create kernelspec and get its name
+        const msg = {
+          cluster: args.cluster,
+          language: 'python',
+          username: 'yasith',
+          workdir: args.workdir,
+          spec: args.config
+        };
+        console.log(msg);
+        const { name } = await requestAPI<any>('/kernelspec', {
+          method: 'post',
+          body: JSON.stringify(msg)
+        });
+        console.log('created kernel spec:', name);
         // reload kernelspecs
         const services = app.serviceManager;
         await services.ready;
+        await services.kernelspecs.refreshSpecs();
         const specs = services.kernelspecs;
         await specs.ready;
+        if (specs.specs?.kernelspecs[name] === undefined) {
+          throw new Error('kernel spec not synchronized yet');
+        }
         // launch kernel and open notebook
-        const cwd = '.';
-        const kernel_name = 'gkeyll';
+        const result = await app.commands.execute('docmanager:new-untitled', {
+          path: '.',
+          type: 'notebook'
+        });
         // open notebook with kernel
         const widget = (await app.commands.execute('docmanager:open', {
-          path: `${cwd}/example.ipynb`,
+          path: result.path,
           factory: 'Notebook',
           kernel: {}
         })) as IDocumentWidget;
         widget.isUntitled = true;
-        return widget.context.sessionContext.changeKernel({
-          name: kernel_name
-        });
+        return widget.context.sessionContext.changeKernel({ name });
       } catch (err) {
         console.error(err);
       }
@@ -126,13 +155,7 @@ async function activate_cybershuttle_launcher(
     label: 'Select Cybershuttle Kernel',
     execute: async (args: any) => {
       try {
-        const res = await fetch(
-          'http://74.235.88.134/kernelspecs?user=yasith',
-          {
-            mode: 'cors'
-          }
-        );
-        const json = await res.json();
+        const json = await requestAPI<any>('/kernelspec?user=yasith');
         const clusters = Object.keys(json);
         const cfg = json.gkeyll.metadata.kernel_provisioner.config;
         const spec = cfg.spec;

@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v4.2.5
+_commit: v4.2.6
 _src_path: https://github.com/jupyterlab/extension-template
 author_email: yasith@cs.odu.edu
 author_name: Yasith Jayawardana
@@ -7,7 +7,7 @@ data_format: string
 file_extension: ''
 has_binder: false
 has_settings: true
-kind: frontend
+kind: server
 labextension_name: cybershuttle_nbplugin
 mimetype: ''
 mimetype_name: ''

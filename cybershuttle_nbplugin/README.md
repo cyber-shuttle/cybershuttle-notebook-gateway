@@ -1,7 +1,12 @@
 # cybershuttle_nbplugin
 
 [![Github Actions Status](https://github.com/cyber-shuttle/cybershuttle-notebook-gateway/workflows/Build/badge.svg)](https://github.com/cyber-shuttle/cybershuttle-notebook-gateway/actions/workflows/build.yml)
+
 Notebook Extension for Running Remote Kernels via Cybershuttle
+
+This extension is composed of a Python package named `cybershuttle_nbplugin`
+for the server extension and a NPM package named `cybershuttle_nbplugin`
+for the frontend extension.
 
 ## Requirements
 
@@ -23,6 +28,22 @@ To remove the extension, execute:
 pip uninstall cybershuttle_nbplugin
 ```
 
+## Troubleshoot
+
+If you are seeing the frontend extension, but it is not working, check
+that the server extension is enabled:
+
+```bash
+jupyter server extension list
+```
+
+If the server extension is installed and enabled, but you are not seeing
+the frontend extension, check the frontend extension is installed:
+
+```bash
+jupyter labextension list
+```
+
 ## Contributing
 
 ### Development install
@@ -40,6 +61,8 @@ The `jlpm` command is JupyterLab's pinned version of
 pip install -e "."
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
+# Server extension must be manually installed in develop mode
+jupyter server extension enable cybershuttle_nbplugin
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
@@ -64,6 +87,8 @@ jupyter lab build --minimize=False
 ### Development uninstall
 
 ```bash
+# Server extension must be manually disabled in develop mode
+jupyter server extension disable cybershuttle_nbplugin
 pip uninstall cybershuttle_nbplugin
 ```
 
