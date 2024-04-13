@@ -55,33 +55,43 @@ const KernelSpecForm = (props: KernelSpec) => {
     }
   };
   return (
-    <div>
-      <div>
-        <label><b>Cluster</b></label>
-        <select name="cluster" value={cluster} onChange={e => onChange('cluster', e.target.value)}>
-          {props.clusters.map(c => (<option value={c}>{c}</option>))}
-        </select>
-      </div>
-      <div>
-        <label><b>Working Directory</b></label>
-        <input name="workdir" type="text" value={workdir} onChange={e => onChange('workdir', e.target.value)}></input>
-      </div>
-      <div>
-        <label><b>Executable Path (Optional)</b></label>
-        <input name="exec_path" type="text" value={exec_path} onChange={e => onChange('exec_path', e.target.value)}></input>
-      </div>
-      <div>
-        <label><b>User Scripts (Optional)</b></label>
-        <input name="user_scripts" type="text" value={user_scripts} onChange={e => onChange('user_scripts', e.target.value)}></input>
-      </div>
-      <h3 style={{ fontWeight: 'normal' }}>Choose Resources</h3>
-      {Object.entries(config).map(([k, v]) => (
-        <div>
-          <label><b>{k}</b></label>
-          <input name={k} type="text" value={v} onChange={e => onChange('config', { [k]: e.target.value })}></input>
-        </div>
-      ))}
-    </div>
+
+    <table>
+      <tbody>
+        <tr>
+          <td className="jp-Cell">
+            <label><b>Cluster</b></label>
+            <select className='jp-mod-styled' name="cluster" value={cluster} onChange={e => onChange('cluster', e.target.value)}>{props.clusters.map(c => (<option value={c}>{c}</option>))}</select>
+          </td>
+        </tr>
+        <tr>
+          <td className="jp-Cell">
+            <label><b>Working Directory</b></label>
+            <input className='jp-mod-styled' style={{ width: "100%", height: "32px" }} name="workdir" type="text" value={workdir} onChange={e => onChange('workdir', e.target.value)}></input>
+          </td>
+        </tr>
+        <tr>
+          <td className="jp-Cell">
+            <label><b>Executable Path (Optional)</b></label>
+            <input className='jp-mod-styled' style={{ width: "100%", height: "32px" }} name="exec_path" type="text" value={exec_path} onChange={e => onChange('exec_path', e.target.value)}></input>
+          </td>
+        </tr>
+        <tr>
+          <td className="jp-Cell">
+            <label><b>User Scripts (Optional)</b></label>
+            <input className='jp-mod-styled' style={{ width: "100%", height: "32px" }} name="user_scripts" type="text" value={user_scripts} onChange={e => onChange('user_scripts', e.target.value)}></input>
+          </td>
+        </tr>
+        {Object.entries(config).map(([k, v]) => (
+          <tr>
+            <td className="jp-Cell">
+              <label><b>Resources: {k}</b></label>
+              <input className='jp-mod-styled' style={{ width: "100%", height: "32px" }} name={k} type="text" value={v} onChange={e => onChange('config', { [k]: e.target.value })}></input>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 };
 
