@@ -322,10 +322,11 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         while True:
             state, node, eta, ports = self.api.poll_job_status(self.job_id)
             if state == "PENDING":
-                self.log.info("Waiting for kernel to start...")
+                self.log.info(f"kernel={self.job_id} waiting to start...")
                 await asyncio.sleep(5.0)
             else:
                 break
+        self.log.info(f"kernel={self.job_id} started.")
 
     def reset_connection_info(self) -> None:
         km = self.parent
