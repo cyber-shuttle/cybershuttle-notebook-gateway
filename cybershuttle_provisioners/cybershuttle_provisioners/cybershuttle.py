@@ -309,6 +309,23 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             ]
 
         return await super().pre_launch(cmd=kernel_cmd, **kwargs)
+    
+    async def post_launch(self, **kwargs) -> None:
+        """
+        Perform any steps following the kernel process launch.
+
+        This method is called from `KernelManager.post_start_kernel()` as part of its
+        start kernel sequence.
+        """
+        # wait for the kernel to be started
+        assert self.job_id is not None
+        while True:
+            state, node, eta, ports = self.api.poll_job_status(self.job_id)
+            if state == "PENDING":
+                self.log.info("Waiting for kernel to start...")
+                await asyncio.sleep(5.0)
+            else:
+                break
 
     def reset_connection_info(self) -> None:
         km = self.parent
@@ -343,5 +360,5 @@ class CybershuttleProvisioner(KernelProvisionerBase):
     def get_shutdown_wait_time(self, recommended: float = 5.0) -> float:
         return 5.0
 
-    def get_stable_start_time(self, recommended: float = 10.0) -> float:
+    def get_stable_start_time(self, recommended: float = 120.0) -> float:
         return 120.0
