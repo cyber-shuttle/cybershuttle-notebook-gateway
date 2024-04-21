@@ -227,6 +227,7 @@ def provision_kernel():
     api = SlurmAPI(app.logger)
     api.ssh_prefix = api.build_ssh_command(cluster_cfg.username, cluster_cfg.loginnode, cluster_cfg.proxyjump)
     job_id = api.launch_job(job_script)
+    port_map = generate_port_map(data.connection_info, fwd_ports)
     # save job state
     state_var[job_id] = JobState(
         api=api,
@@ -236,11 +237,11 @@ def provision_kernel():
         transport=data.transport,
         spec=data.spec,
         connection_info=data.connection_info,
-        port_map=generate_port_map(data.connection_info, fwd_ports),
+        port_map=port_map,
         forwarding=False,
         workdir=data.workdir,
     )
-    return jsonify(sanitize(dict(job_id=job_id)))
+    return jsonify(sanitize(dict(job_id=job_id, ports=port_map)))
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ class CybershuttleAPI:
         )
         return r.status_code == 200
 
-    def launch_job(self, job_config: dict[str, Any]) -> int:
+    def launch_job(self, job_config: dict[str, Any]) -> tuple[int, list[tuple[int,int]]]:
         """
         Launch a new job and return its ID.
 
@@ -65,7 +65,7 @@ class CybershuttleAPI:
         )
         if r.status_code == 200:
             data: dict = r.json()  # type: ignore
-            return data["job_id"]
+            return data["job_id"], data["ports"]
         raise RuntimeError()
 
     def start_forwarding(

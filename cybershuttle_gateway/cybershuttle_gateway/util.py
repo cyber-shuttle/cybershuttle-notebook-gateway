@@ -12,7 +12,7 @@ def sanitize(
 
 
 def get_n_free_ports(min_port: int, max_port: int, n: int):
-    choice = []
+    choice: list[int] = []
     for port in range(min_port, max_port + 1):
         if len(choice) == n:
             return choice

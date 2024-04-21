@@ -224,15 +224,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             spec=self.spec,
             connection_info=self.connection_info,
         )
-        self.job_id = self.api.launch_job(job_config)
-
-        # get ports
-        while True:
-            state, node, eta, ports = self.api.poll_job_status(self.job_id)
-            if state != "RUNNING":
-                await asyncio.sleep(5.0)
-            else:
-                break
+        self.job_id, ports = self.api.launch_job(job_config)
         self.update_connection_info(self.gateway_url, ports, **kwargs)
 
         return self.connection_info
