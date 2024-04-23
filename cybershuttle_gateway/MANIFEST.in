@@ -1,1 +1,1 @@
-include cybershuttle_gateway/templates/*.sh
+include cybershuttle_gateway/templates/*

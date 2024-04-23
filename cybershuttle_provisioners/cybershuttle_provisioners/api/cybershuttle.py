@@ -1,3 +1,4 @@
+import urllib.parse
 from logging import Logger
 from subprocess import PIPE, Popen
 from typing import Any
@@ -8,12 +9,13 @@ import requests
 
 class CybershuttleAPI:
 
-    def __init__(self, url: str, logger: Logger):
+    def __init__(self, url: str, logger: Logger, username: str):
         super().__init__()
         self.url = url
         self.log = logger
+        self.username = username
 
-    def poll_job_status(self, job_id: int) -> tuple[str, str, str]:
+    def poll_job_status(self, job_id: int) -> tuple[str, str, str, list[tuple[int, int]]]:
         """
         Checks if job is still running.
 
@@ -23,58 +25,72 @@ class CybershuttleAPI:
         exec_node (str) url of worker node that job is running on
 
         """
-        r = requests.get(f"{self.url}/status/{job_id}")
+        r = requests.get(
+            f"{self.url}/status/{job_id}",
+            params={"user": self.username},
+        )
         state = "UNKNOWN"
         node = eta = ""
+        ports = []
         if r.status_code == 200:
             data = r.json()
             state, node, eta = data["state"], data["node"], data["eta"]
+            if "ports" in data:
+                ports = data["ports"]
 
-        return state, node, eta
+        return state, node, eta, ports
 
     def signal_job(self, job_id: int, signum: int) -> bool:
         """
         Issue signal to a running job.
 
         """
-        r = requests.post(f"{self.url}/signal/{job_id}", data=msgpack.dumps(dict(signum=signum)))
+        r = requests.post(
+            f"{self.url}/signal/{job_id}",
+            data=msgpack.dumps(dict(signum=signum)),
+            params={"user": self.username},
+        )
         return r.status_code == 200
 
-    def launch_job(self, job_config: dict[str, Any], method: str, transport: str) -> int:
+    def launch_job(self, job_config: dict[str, Any]) -> tuple[int, list[tuple[int,int]]]:
         """
         Launch a new job and return its ID.
 
         """
         self.log.warn(job_config)
-        r = requests.post(f"{self.url}/provision/{method}/{transport}", data=msgpack.dumps(job_config))
+        r = requests.post(
+            f"{self.url}/provision",
+            data=msgpack.dumps(job_config),
+            params={"user": self.username},
+        )
         if r.status_code == 200:
             data: dict = r.json()  # type: ignore
-            return data["job_id"]
+            return data["job_id"], data["ports"]
         raise RuntimeError()
 
     def start_forwarding(
         self,
         job_id: int,
-        connection_info: dict[str, Any],
     ) -> Popen[bytes]:
         """
         Create a process to forward remote job ports to local
 
         """
 
-        r = requests.get(f"{self.url}/info/{job_id}")
-        if r.status_code == 200:
-            ports: dict[str, int] = r.json()["ports"]
+        r = requests.get(
+            f"{self.url}/info/{job_id}",
+            params={"user": self.username},
+        )
+        assert r.status_code == 200
 
+        host = urllib.parse.urlparse(self.url).netloc
+        ports: list[tuple[int, int]] = r.json()["port_map"]
         portfwd_cmd = []
-        for p, remote_port in ports.items():
-            assert p in connection_info
-            local_port = connection_info[p]
-            host = self.url.rsplit(":", 1)[0]
-            portfwd_cmd.extend(["socat", f"tcp-listen:{local_port},fork", f"tcp:{host}:{remote_port}", "|"])
+        for local_port, remote_port in ports:
+            portfwd_cmd.extend(["socat", f"TCP-LISTEN:{local_port},fork", f"TCP:{host}:{remote_port}", "|"])
         portfwd_cmd.pop()  # remove last pipe
         portfwd_cmd_str = " ".join(portfwd_cmd)
-        self.log.debug(f"Port forward command: {portfwd_cmd_str}")
+        self.log.info(f"Port forward command: {portfwd_cmd_str}")
 
         # start port forwarding process
         self.log.info(f"Forwarding ports from {self.url} to localhost")

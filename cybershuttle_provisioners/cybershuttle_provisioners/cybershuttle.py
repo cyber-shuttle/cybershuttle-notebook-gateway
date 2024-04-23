@@ -1,5 +1,6 @@
 import asyncio
 import signal
+import urllib.parse
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 
 import traitlets
@@ -7,8 +8,10 @@ from jupyter_client.connect import KernelConnectionInfo, LocalPortCache
 from jupyter_client.localinterfaces import is_local_ip, local_ips
 from jupyter_client.provisioning.provisioner_base import KernelProvisionerBase
 
-from . import __template_dir__
-from .api import CybershuttleAPI
+from cybershuttle_provisioners.api import CybershuttleAPI
+from cybershuttle_provisioners.config import TEMPLATE_DIR
+
+localhost = "127.0.0.1"
 
 
 class CybershuttleProvisioner(KernelProvisionerBase):
@@ -31,18 +34,18 @@ class CybershuttleProvisioner(KernelProvisionerBase):
     num_retries = 0
 
     max_retries: int = 100
-    ports_cached = False
 
-    sbatch_flags: dict = traitlets.Dict(config=True)  # type: ignore
     gateway_url: str = traitlets.Unicode(config=True)  # type: ignore
-    method: str = traitlets.Unicode(config=True)  # type: ignore
+    cluster: str = traitlets.Unicode(config=True)  # type: ignore
     transport: str = traitlets.Unicode(config=True)  # type: ignore
-    proxyjump: str = traitlets.Unicode(config=True)  # type: ignore
-    loginnode: str = traitlets.Unicode(config=True)  # type: ignore
+    spec: dict = traitlets.Dict(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
-    lmod_modules: list = traitlets.List(config=True)  # type: ignore
-    template_dir = __template_dir__
-    fwd_ports = ["stdin_port", "shell_port", "iopub_port", "hb_port", "control_port"]
+    workdir: str = traitlets.Unicode(config=True)  # type: ignore
+    exec_path: str = traitlets.Unicode(config=True, default_value="")  # type: ignore
+    user_scripts: str = traitlets.Unicode(config=True, default_value="")  # type: ignore
+    template_dir = TEMPLATE_DIR
+    fwd_ports = ["shell_port", "iopub_port", "stdin_port", "hb_port", "control_port"]
+    cached_ports = None
 
     def _reset_state(self):
         self.job_id = None
@@ -76,7 +79,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         # poll for job state
         assert self.job_id is not None
-        state, node, eta = self.api.poll_job_status(self.job_id)
+        state, node, eta, ports = self.api.poll_job_status(self.job_id)
 
         # case 1 - running state
         if state == "RUNNING":
@@ -86,17 +89,18 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             # at this point both exec_node and connection_info must exist
             assert self.exec_node is not None
             assert self.connection_info is not None
-            if self.proc_portfwd is None:
-                # start port forwarding process
-                assert self.exec_node is not None
-                self.proc_portfwd = self.api.start_forwarding(
-                    job_id=self.job_id,
-                    connection_info=self.connection_info,
-                )
+
+            # NOTE not needed when connection_info is directly updated with gateway ip/ports
+            # if self.proc_portfwd is None:
+            # start port forwarding process
+            # assert self.exec_node is not None
+            # self.proc_portfwd = self.api.start_forwarding(job_id=self.job_id)
+            # self.log.info(f"Started forwarding from gateway server to localhost")
+
             return None
 
         # case 2 - pending state
-        if state == "PENDING":
+        if state in ["PENDING", "CONFIGURING"]:
             self.job_state = "PENDING"
             self.log.debug(f"job {self.job_id} is PENDING. NODE={self.exec_node}, ETA={eta}")
             return None
@@ -114,11 +118,15 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         # give some time for job to show up in squeue
         if self.num_retries < self.max_retries:
             self.num_retries += 1
-            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job not in squeue. using state=PENDING")
+            self.log.warn(
+                f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=PENDING"
+            )
             self.job_state = "PENDING"
             return None
         else:
-            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job not in squeue. using state=UNKNOWN")
+            self.log.warn(
+                f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=UNKNOWN"
+            )
             self.num_retries = 0
             self.job_state = "UNKNOWN"
             return 1
@@ -132,25 +140,19 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         immediately, respectively.
 
         """
-        ret = 0
+        ret: Optional[int] = 0
         if self.awaiting_shutdown:
-            # Use busy loop at 100ms intervals, polling until the process is
+            self.log.warning(f"cleanup(): waiting for job {self.job_id} to terminate...")
+            # Use busy loop at 1 second intervals, polling until the process is
             # not alive.  If we find the process is no longer alive, complete
             # its cleanup via the blocking wait().  Callers are responsible for
             # issuing calls to wait() using a timeout (see kill()).
-            while await self.poll() is None:  # type:ignore[unreachable]
-                await asyncio.sleep(0.1)
-
-        # job is no longer alive, wait and clear port forwarding process
-        if self.proc_portfwd is not None:
-            ret = self.proc_portfwd.wait()
-            # Make sure all the fds get closed.
-            for attr in ["stdout", "stderr", "stdin"]:
-                fid = getattr(self.proc_portfwd, attr)
-                if fid:
-                    fid.close()
+            while {ret := await self.poll()} is None:
+                await asyncio.sleep(1.0)
+            assert ret is not None
 
         # allow has_process to now return False
+        self.log.warning(f"cleanup(): job {self.job_id} successfully terminated.")
         self.awaiting_shutdown = False
 
         return ret
@@ -179,6 +181,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         restart is True if this operation will precede a subsequent launch_kernel request.
         """
+        assert self.awaiting_shutdown == True
         if self.job_state == "RUNNING":
             await self.send_signal(signal.SIGKILL)
 
@@ -193,6 +196,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         restart is True if this operation precedes a start launch_kernel request.
         """
+        assert self.awaiting_shutdown == True
         if self.job_state == "RUNNING":
             await self.send_signal(signal.SIGTERM)
 
@@ -206,9 +210,22 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         # reset state variables
         self._reset_state()
+        self.reset_connection_info()
 
         # launch kernel
-        self.job_id = self.api.launch_job(self.job_config, method=self.method, transport=self.transport)
+        job_config = dict(
+            username=self.username,
+            workdir=self.workdir,
+            exec_path=self.exec_path,
+            user_scripts=self.user_scripts,
+            gateway_url=self.gateway_url,
+            cluster=self.cluster,
+            transport=self.transport,
+            spec=self.spec,
+            connection_info=self.connection_info,
+        )
+        self.job_id, ports = self.api.launch_job(job_config)
+        self.update_connection_info(self.gateway_url, ports, **kwargs)
 
         return self.connection_info
 
@@ -221,17 +238,11 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         restart is True if this operation precedes a start launch_kernel request.
         """
-        if self.ports_cached and not restart:
-            # provisioner is about to be destroyed, return cached ports
+        if not restart:
+            # provisioner is about to be destroyed, return cached portsa
+            assert self.cached_ports is not None
             lpc = LocalPortCache.instance()
-            ports = (
-                self.connection_info["shell_port"],
-                self.connection_info["iopub_port"],
-                self.connection_info["stdin_port"],
-                self.connection_info["hb_port"],
-                self.connection_info["control_port"],
-            )
-            for port in ports:
+            for port in self.cached_ports:
                 if TYPE_CHECKING:
                     assert isinstance(port, int)
                 lpc.return_port(port)
@@ -267,70 +278,88 @@ class CybershuttleProvisioner(KernelProvisionerBase):
         :meth:`launch_kernel()`.
         """
 
-        # This should be considered temporary until a better division of labor can be defined.
-        km = self.parent
-        if km:
-            if km.transport == "tcp" and not is_local_ip(km.ip):
-                msg = (
-                    "Can only launch a kernel on a local interface. "
-                    f"This one is not: {km.ip}."
-                    "Make sure that the '*_address' attributes are "
-                    "configured properly. "
-                    f"Currently valid addresses are: {local_ips()}"
-                )
-                raise RuntimeError(msg)
-            # build the Popen cmd
-            extra_arguments = kwargs.pop("extra_arguments", [])
-
-            # write connection file / get default ports
-            # TODO - change when handshake pattern is adopted
-            if km.cache_ports and not self.ports_cached:
-                lpc = LocalPortCache.instance()
-                km.shell_port = lpc.find_available_port(km.ip)
-                km.iopub_port = lpc.find_available_port(km.ip)
-                km.stdin_port = lpc.find_available_port(km.ip)
-                km.hb_port = lpc.find_available_port(km.ip)
-                km.control_port = lpc.find_available_port(km.ip)
-                self.ports_cached = True
-            if "env" in kwargs:
-                jupyter_session = kwargs["env"].get("JPY_SESSION_NAME", "")
-                km.write_connection_file(jupyter_session=jupyter_session)
-            else:
-                km.write_connection_file()
-            self.connection_info = km.get_connection_info()
-
-            kernel_cmd = km.format_kernel_cmd(extra_arguments=extra_arguments)  # This needs to remain here for b/c
-        else:
-            extra_arguments = kwargs.pop("extra_arguments", [])
-            kernel_cmd = self.kernel_spec.argv + extra_arguments
-
         # basic kernelspec checks
-        if not self.sbatch_flags:
-            raise RuntimeError("Please provide sbatch flags to start the SLURM job with.")
-        if not self.lmod_modules:
-            raise RuntimeError("Please provide modules to load into the SLURM job.")
+        if not self.gateway_url:
+            raise RuntimeError("kernelspec is missing the cybershuttle gateway url.")
+        if not self.transport:
+            raise RuntimeError("kernelspec is missing the transport type.")
+        if not self.cluster:
+            raise RuntimeError("kernelspec is missing the cluster name.")
+        if not self.spec:
+            raise RuntimeError("kernelspec is missing the job specification.")
         if not self.username:
-            raise RuntimeError(f"Please provide a username to start the SLURM job.")
+            raise RuntimeError(f"kernelspec is missing the username.")
+
+        extra_arguments = kwargs.pop("extra_arguments", [])
+        kernel_cmd = self.kernel_spec.argv + extra_arguments
 
         # create provisioner api
-        self.api = CybershuttleAPI(logger=self.log, url=self.gateway_url)
+        self.api = CybershuttleAPI(logger=self.log, url=self.gateway_url, username=self.username)
 
-        # build job config
-        self.job_config = dict(
-            username=self.username,
-            loginnode=self.loginnode,
-            proxyjump=self.proxyjump,
-            sbatch_opts=self.sbatch_flags,
-            env_vars=self.kernel_spec.env,
-            exec_command=self.kernel_spec.argv,
-            lmod_modules=self.lmod_modules,
-            connection_info=self.connection_info,
-        )
+        # define cached ports to use during provisioner lifecycle
+        # TODO move this port selection logic to gateway API.
+        if self.cached_ports is None:
+            lpc = LocalPortCache.instance()
+            self.cached_ports = [
+                lpc.find_available_port(localhost),
+                lpc.find_available_port(localhost),
+                lpc.find_available_port(localhost),
+                lpc.find_available_port(localhost),
+                lpc.find_available_port(localhost),
+            ]
 
         return await super().pre_launch(cmd=kernel_cmd, **kwargs)
+    
+    async def post_launch(self, **kwargs) -> None:
+        """
+        Perform any steps following the kernel process launch.
 
-    def get_shutdown_wait_time(self, recommended: float = 60) -> float:
-        return 60
+        This method is called from `KernelManager.post_start_kernel()` as part of its
+        start kernel sequence.
+        """
+        # wait for the kernel to be started
+        assert self.job_id is not None
+        while True:
+            state, node, eta, ports = self.api.poll_job_status(self.job_id)
+            if state == "PENDING":
+                self.log.info(f"kernel={self.job_id} waiting to start...")
+                await asyncio.sleep(5.0)
+            else:
+                break
+        self.log.info(f"kernel={self.job_id} started.")
 
-    def get_stable_start_time(self, recommended: float = 60) -> float:
-        return 120
+    def reset_connection_info(self) -> None:
+        km = self.parent
+        assert km is not None
+        assert self.cached_ports is not None
+        km.ip = localhost
+        [km.shell_port, km.iopub_port, km.stdin_port, km.hb_port, km.control_port] = self.cached_ports
+        self.connection_info = km.get_connection_info()
+        # ensure kernelmanager is using tcp transport
+        if km.transport != "tcp":
+            raise RuntimeError("only tcp transport is supported")
+        self.log.info("reset connection info: %s", self.connection_info)
+
+    def update_connection_info(self, gateway_url: str, ports: list[tuple[int, int]], **kwargs) -> None:
+        # point kernelmanager ip to gateway_ip
+        km = self.parent
+        assert km is not None
+        km.ip = urllib.parse.urlparse(gateway_url).netloc.split(":")[0]
+
+        # write returned ports to connection file
+        for i, name in enumerate(self.fwd_ports):
+            setattr(km, name, ports[i][1])
+        if "env" in kwargs:
+            jupyter_session = kwargs["env"].get("JPY_SESSION_NAME", "")
+            km.write_connection_file(jupyter_session=jupyter_session)
+        else:
+            km.write_connection_file()
+        kwargs.pop("extra_arguments", [])
+        self.connection_info = km.get_connection_info()
+        self.log.info("updated connection info: %s", self.connection_info)
+
+    def get_shutdown_wait_time(self, recommended: float = 5.0) -> float:
+        return 5.0
+
+    def get_stable_start_time(self, recommended: float = 120.0) -> float:
+        return 120.0

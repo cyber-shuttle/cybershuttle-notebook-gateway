@@ -1,9 +1,8 @@
 import re
 from logging import Logger
 from subprocess import PIPE, Popen, TimeoutExpired, check_output
-from typing import Any
 
-from . import APIBase
+from cybershuttle_gateway.api import APIBase
 
 
 class SlurmAPI(APIBase):
@@ -12,6 +11,7 @@ class SlurmAPI(APIBase):
         super().__init__()
         self.log = logger
         self.ssh_prefix = ssh_prefix
+        self.portfwd_process = None
 
     def poll_job_status(self, job_id: int) -> tuple[str, str, str]:
         """
@@ -43,6 +43,7 @@ class SlurmAPI(APIBase):
         if len(splits := stdout.split(" ")) == 3:
             state, node, eta = splits
 
+        self.log.info(f"returning job state: {state}, {node}, {eta}")
         return state, node, eta
 
     def signal_job(self, job_id: int, signum: int) -> bool:
@@ -51,27 +52,32 @@ class SlurmAPI(APIBase):
 
         """
 
-        signal_cmd = self.ssh_prefix + ["bash", "--login", "-c", f'"scancel -s {signum} {job_id}"']
+        signal_cmd = self.ssh_prefix + ["bash", "-c", f"\"scancel -b -s {signum} {job_id}\""]
         signal_cmd_str = " ".join(signal_cmd)
         self.log.info(f"signaling kernel job ({job_id}): {signal_cmd_str}")
         status = None
         try:
-            check_output(signal_cmd).decode().strip()
-            self.log.info(f"kernel job signaled ({job_id})")
+            stdout = check_output(signal_cmd).decode().strip()
+            self.log.info(f"kernel job signaled ({job_id}) - {stdout}")
             status = True
         except:
             self.log.error(f"error when signaling kernel job")
             status = False
+        if self.portfwd_process is not None:
+            self.portfwd_process.terminate()
+            self.portfwd_process = None
+            self.log.info(f"SSH tunnel is now closed")
+
         return status
 
-    def launch_job(self, job_script: str) -> int:
+    def launch_job(self, job_script: str) -> str:
         """
         Launch a SLURM job and return its ID.
 
         """
 
         # build spawn_cmd
-        spawn_cmd = self.ssh_prefix + ["bash", "--login", "-c", '"sbatch --parsable"']
+        spawn_cmd = self.ssh_prefix + ["bash", "-c", "sbatch --parsable"]
         spawn_cmd_str = " ".join(spawn_cmd)
         self.log.info(f"Launching Kernel: {spawn_cmd_str}")
 
@@ -91,7 +97,7 @@ class SlurmAPI(APIBase):
         job_id = re.search(r"(\d+)", stdout, re.IGNORECASE)
         if job_id is None:
             raise RuntimeError("Cannot find SLURM Job ID in stdout")
-        job_id = int(job_id.group(1))
+        job_id = str(job_id.group(1))
         self.log.debug(f"SLURM Job ID: {job_id}")
 
         return job_id
@@ -116,12 +122,13 @@ class SlurmAPI(APIBase):
     def start_forwarding(
         self,
         username: str,
+        compute_username: str,
         execnode: str,
-        fwd_ports: list[str],
-        connection_info: dict[str, Any],
+        port_map: list[tuple[int, int]],
         proxyjump: str = "",
         loginnode: str = "",
-    ) -> Popen[bytes]:
+        localnode: str = "localhost",
+    ) -> None:
         """
         Create a process to forward ports via SSH
 
@@ -130,9 +137,7 @@ class SlurmAPI(APIBase):
         # assertions
         assert len(username) > 0
         assert len(execnode) > 0
-        assert len(fwd_ports) > 0
-        for p in fwd_ports:
-            assert p in connection_info
+        assert len(port_map) > 0
 
         proxyjump_args = []
         if len(proxyjump) > 0 and len(loginnode) > 0:
@@ -141,16 +146,20 @@ class SlurmAPI(APIBase):
             proxyjump_args.extend(["-J", f"{username}@{loginnode}"])
 
         portfwd_args = []
-        for p in fwd_ports:
-            port = connection_info[p]
-            portfwd_args.extend(["-L", f"{port}:localhost:{port}"])
+        for remote, local in port_map:
+            portfwd_args.extend(["-L", f"*:{local}:{localnode}:{remote}"])
 
-        ssh_command = ["ssh", "-fNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
-        ssh_command.append(f"{username}@{execnode}")
+        # NOTE first, clear known-hosts entry if exists
+        clear_cmd = ["ssh-keygen", "-R", execnode]
+        check_output(clear_cmd).decode().strip()
+        self.log.info(f"Cleared known-hosts entries for {execnode}")
+
+        # Added Keepalive to Connections
+        ssh_command = ["ssh", "-gNA", "-o", "StrictHostKeyChecking=no", "-o", "ServerAliveInterval=30", "-o", "ServerAliveCountMax=5"] + proxyjump_args + portfwd_args
+        ssh_command.append(f"{compute_username}@{execnode}")
 
         # start port forwarding process
-        self.log.info(f"Starting SSH tunnel from {execnode} to localhost")
+        self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
-        process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
+        self.portfwd_process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
         self.log.info(f"SSH tunnel is now active")
-        return process

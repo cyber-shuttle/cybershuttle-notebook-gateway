@@ -1,0 +1,8 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "cybershuttle_nbplugin",
+  "description": "cybershuttle_nbplugin settings.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

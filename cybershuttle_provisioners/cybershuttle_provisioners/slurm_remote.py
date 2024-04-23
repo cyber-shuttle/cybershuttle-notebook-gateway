@@ -8,8 +8,8 @@ from jupyter_client.connect import KernelConnectionInfo, LocalPortCache
 from jupyter_client.localinterfaces import is_local_ip, local_ips
 from jupyter_client.provisioning.provisioner_base import KernelProvisionerBase
 
-from . import __template_dir__, jsonify
-from .api import SlurmAPI
+from cybershuttle_provisioners.api import SlurmAPI
+from cybershuttle_provisioners.config import TEMPLATE_DIR, jsonify
 
 
 class RemoteSlurmProvisioner(KernelProvisionerBase):
@@ -41,7 +41,7 @@ class RemoteSlurmProvisioner(KernelProvisionerBase):
     loginnode: str = traitlets.Unicode(config=True)  # type: ignore
     username: str = traitlets.Unicode(config=True)  # type: ignore
     lmod_modules: list = traitlets.List(config=True)  # type: ignore
-    template_dir = __template_dir__
+    template_dir = TEMPLATE_DIR
     fwd_ports = ["stdin_port", "shell_port", "iopub_port", "hb_port", "control_port"]
 
     def _reset_state(self):
@@ -118,11 +118,11 @@ class RemoteSlurmProvisioner(KernelProvisionerBase):
         # give some time for job to show up in squeue
         if self.num_retries < self.max_retries:
             self.num_retries += 1
-            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job not in squeue. using state=PENDING")
+            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=PENDING")
             self.job_state = "PENDING"
             return None
         else:
-            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job not in squeue. using state=UNKNOWN")
+            self.log.warn(f"[{self.num_retries}/{self.max_retries}] Job {self.job_id} not in squeue. using state=UNKNOWN")
             self.num_retries = 0
             self.job_state = "UNKNOWN"
             return 1

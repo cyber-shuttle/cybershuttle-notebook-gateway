@@ -4,7 +4,7 @@ class APIBase:
         pass
 
 
-from .slurm import SlurmAPI
+from cybershuttle_gateway.api.slurm import SlurmAPI
 
 
 def get_class_by_name(name: str) -> type[APIBase]:

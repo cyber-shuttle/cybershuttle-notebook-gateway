@@ -1,4 +1,4 @@
-from . import TransportBase
+from cybershuttle_gateway.transport import TransportBase
 
 
 class KafkaTransport(TransportBase):

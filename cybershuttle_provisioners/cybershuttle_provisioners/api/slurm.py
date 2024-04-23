@@ -49,13 +49,13 @@ class SlurmAPI:
 
         """
 
-        signal_cmd = self.ssh_prefix + ["bash", "--login", "-c", f'"scancel -s {signum} {job_id}"']
+        signal_cmd = self.ssh_prefix + ["bash", "-c", f"\"scancel -b -s {signum} {job_id}\""]
         signal_cmd_str = " ".join(signal_cmd)
         self.log.info(f"signaling kernel job ({job_id}): {signal_cmd_str}")
         status = None
         try:
-            check_output(signal_cmd).decode().strip()
-            self.log.info(f"kernel job signaled ({job_id})")
+            stdout = check_output(signal_cmd).decode().strip()
+            self.log.info(f"kernel job signaled ({job_id}) - {stdout}")
             status = True
         except:
             self.log.error(f"error when signaling kernel job")
@@ -69,7 +69,7 @@ class SlurmAPI:
         """
 
         # build spawn_cmd
-        spawn_cmd = self.ssh_prefix + ["bash", "--login", "-c", '"sbatch --parsable"']
+        spawn_cmd = self.ssh_prefix + ["bash", "-c", "sbatch --parsable"]
         spawn_cmd_str = " ".join(spawn_cmd)
         self.log.info(f"Launching Kernel: {spawn_cmd_str}")
 
@@ -119,6 +119,7 @@ class SlurmAPI:
         connection_info: dict[str, Any],
         proxyjump: str = "",
         loginnode: str = "",
+        localnode: str = "localhost",
     ) -> Popen[bytes]:
         """
         Create a process to forward ports via SSH
@@ -141,13 +142,13 @@ class SlurmAPI:
         portfwd_args = []
         for p in fwd_ports:
             port = connection_info[p]
-            portfwd_args.extend(["-L", f"{port}:localhost:{port}"])
+            portfwd_args.extend(["-L", f"{port}:{localnode}:{port}"])
 
         ssh_command = ["ssh", "-fNA", "-o", "StrictHostKeyChecking=no"] + proxyjump_args + portfwd_args
         ssh_command.append(f"{username}@{execnode}")
 
         # start port forwarding process
-        self.log.info(f"Starting SSH tunnel from {execnode} to localhost")
+        self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
         process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
         self.log.info(f"SSH tunnel is now active")

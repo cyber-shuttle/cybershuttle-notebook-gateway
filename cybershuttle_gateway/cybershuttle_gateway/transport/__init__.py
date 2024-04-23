@@ -4,10 +4,10 @@ class TransportBase:
         pass
 
 
-from .grpc import GrpcTransport
-from .kafka import KafkaTransport
-from .websocket import WebsocketTransport
-from .zmq import ZMQTransport
+from cybershuttle_gateway.transport.grpc import GrpcTransport
+from cybershuttle_gateway.transport.kafka import KafkaTransport
+from cybershuttle_gateway.transport.websocket import WebsocketTransport
+from cybershuttle_gateway.transport.zmq import ZMQTransport
 
 
 def get_class_by_name(name: str) -> type[TransportBase]:
