@@ -46,16 +46,8 @@ class SlurmAPI(APIBase):
         self.log.info(f"returning job state: {state}, {node}, {eta}")
 
         # also check port forwarder state
-        portfwd_active = False
-        if self.portfwd_process is not None:
-            if self.portfwd_process.poll() is not None:
-                portfwd_active = True
-            else:
-                self.log.error("port forwarder has terminated!")
-                if self.portfwd_process.stdout is not None:
-                    self.log.error("stdout=%s", self.portfwd_process.stdout.read())
-                if self.portfwd_process.stderr is not None:
-                    self.log.error("stderr=%s", self.portfwd_process.stderr.read())
+        if self.portfwd_process is not None and self.portfwd_process.poll() is None:
+            self.log.error(f"port forwarder has terminated!: {self.portfwd_process.returncode}")
 
         return state, node, eta
 
@@ -174,5 +166,5 @@ class SlurmAPI(APIBase):
         # start port forwarding process
         self.log.info(f"Starting SSH tunnel from {execnode} to {localnode}")
         self.log.debug(f'SSH command: {" ".join(ssh_command)}')
-        self.portfwd_process = Popen(ssh_command, stdout=PIPE, stderr=PIPE)
+        self.portfwd_process = Popen(ssh_command)
         self.log.info(f"SSH tunnel is now active")
