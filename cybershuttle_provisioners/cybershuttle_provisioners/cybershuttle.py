@@ -181,7 +181,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         restart is True if this operation will precede a subsequent launch_kernel request.
         """
-        assert self.awaiting_shutdown == True
+        self.awaiting_shutdown = True
         if self.job_state == "RUNNING":
             await self.send_signal(signal.SIGKILL)
 
@@ -196,7 +196,7 @@ class CybershuttleProvisioner(KernelProvisionerBase):
 
         restart is True if this operation precedes a start launch_kernel request.
         """
-        assert self.awaiting_shutdown == True
+        self.awaiting_shutdown = True
         if self.job_state == "RUNNING":
             await self.send_signal(signal.SIGTERM)
 

@@ -44,6 +44,19 @@ class SlurmAPI(APIBase):
             state, node, eta = splits
 
         self.log.info(f"returning job state: {state}, {node}, {eta}")
+
+        # also check port forwarder state
+        portfwd_active = False
+        if self.portfwd_process is not None:
+            if self.portfwd_process.poll() is not None:
+                portfwd_active = True
+            else:
+                self.log.error("port forwarder has terminated!")
+                if self.portfwd_process.stdout is not None:
+                    self.log.error("stdout=%s", self.portfwd_process.stdout.read())
+                if self.portfwd_process.stderr is not None:
+                    self.log.error("stderr=%s", self.portfwd_process.stderr.read())
+
         return state, node, eta
 
     def signal_job(self, job_id: int, signum: int) -> bool:
