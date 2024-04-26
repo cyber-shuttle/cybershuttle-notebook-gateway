@@ -1,8 +1,7 @@
-import json
-from typing import Any
 import socket
+from typing import Any
 
-from cybershuttle_gateway.typing import KernelSpec, KernelMetadata, KernelProvisionerMetadata, KernelProvisionerConfig
+from cybershuttle_gateway.typing import KernelMetadata, KernelProvisionerConfig, KernelProvisionerMetadata, KernelSpec
 
 
 def sanitize(
@@ -11,9 +10,9 @@ def sanitize(
     return {k: v.decode() if isinstance(v, bytes) else v for k, v in data.items()}
 
 
-def get_n_free_ports(min_port: int, max_port: int, n: int):
+def get_n_free_ports(choices: list[int], n: int):
     choice: list[int] = []
-    for port in range(min_port, max_port + 1):
+    for port in choices:
         if len(choice) == n:
             return choice
         try:
@@ -29,9 +28,11 @@ def get_n_free_ports(min_port: int, max_port: int, n: int):
 def generate_port_map(
     connection_info: dict[str, Any],
     port_names: list[str],
+    reserved_ports: set[int],
 ):
     remote_ports = [int(connection_info[p]) for p in port_names]
-    local_ports = get_n_free_ports(min_port=9001, max_port=9999, n=len(remote_ports))
+    port_choices = sorted(set(range(9001, 10000)).difference(reserved_ports))
+    local_ports = get_n_free_ports(choices=port_choices, n=len(remote_ports))
     return list(zip(remote_ports, local_ports))
 
 

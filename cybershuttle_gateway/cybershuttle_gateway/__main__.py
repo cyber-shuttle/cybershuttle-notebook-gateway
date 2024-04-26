@@ -90,9 +90,10 @@ def validate_auth(f):
 
     return wrapper
 
+
 @app.after_request
 def add_header(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
 
@@ -207,7 +208,9 @@ def provision_kernel():
 
     arg_sbatch_opts = "\n".join([f"#SBATCH --{k}={v}" for k, v in data.spec.items()])
     arg_env_vars = "\n".join([f"export {k}={v}" for k, v in cluster_cfg.env.items()])
-    arg_exec_command = " ".join(cluster_cfg.argv).format(connection_file="$tmpfile", exec_path=data.exec_path or cluster_cfg.exec_path)
+    arg_exec_command = " ".join(cluster_cfg.argv).format(
+        connection_file="$tmpfile", exec_path=data.exec_path or cluster_cfg.exec_path
+    )
     arg_lmod_modules = "module load " + " ".join(cluster_cfg.lmod_modules) if len(cluster_cfg.lmod_modules) else ""
     arg_connection_info = json.dumps(sanitize(data.connection_info))
     arg_workdir_command = f"cd {data.workdir}" if data.workdir else ""
@@ -227,7 +230,8 @@ def provision_kernel():
     api = SlurmAPI(app.logger)
     api.ssh_prefix = api.build_ssh_command(cluster_cfg.username, cluster_cfg.loginnode, cluster_cfg.proxyjump)
     job_id = api.launch_job(job_script)
-    port_map = generate_port_map(data.connection_info, fwd_ports)
+    used_ports = set(l for job in state_var.values() for [_, l] in job.port_map)
+    port_map = generate_port_map(data.connection_info, fwd_ports, used_ports)
     # save job state
     state_var[job_id] = JobState(
         api=api,

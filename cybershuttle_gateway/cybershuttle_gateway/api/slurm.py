@@ -35,7 +35,7 @@ class SlurmAPI(APIBase):
         node = eta = stdout = ""
         try:
             stdout = check_output(poll_command).decode().strip()
-            self.log.info(f"got job state: {stdout}")
+            self.log.info(f"got job state: {stdout}\n")
         except:
             state = "ERROR"
             self.log.error(f"error in poll command")
@@ -46,8 +46,10 @@ class SlurmAPI(APIBase):
         self.log.info(f"returning job state: {state}, {node}, {eta}")
 
         # also check port forwarder state
-        if self.portfwd_process is not None and self.portfwd_process.poll() is None:
+        if self.portfwd_process is not None and self.portfwd_process.poll() is not None:
             self.log.error(f"port forwarder has terminated!: {self.portfwd_process.returncode}")
+            # gives the chance to restart port forwarder
+            self.portfwd_process = None
 
         return state, node, eta
 
@@ -93,7 +95,7 @@ class SlurmAPI(APIBase):
             stderr = stderr.decode().strip()
             # check exit code
             if not spawn_process.returncode == 0:
-                raise RuntimeError(f"SSH command returned error code {spawn_process.returncode}:\n{stderr}\n")
+                raise RuntimeError(f"SSH command returned error:\ncode={spawn_process.returncode}\nstdout={stdout}\nstderr={stderr}\n")
         except TimeoutExpired:
             raise RuntimeError(f"SSH command timed out:\n{spawn_cmd_str}\n")
         self.log.info(f"Kernel Launched: {stdout}")

@@ -224,7 +224,14 @@ class CybershuttleProvisioner(KernelProvisionerBase):
             spec=self.spec,
             connection_info=self.connection_info,
         )
-        self.job_id, ports = self.api.launch_job(job_config)
+        n = 5
+        for i in range(n):
+            try:
+                self.job_id, ports = self.api.launch_job(job_config)
+                break
+            except RuntimeError:
+                self.log.warning(f"launch command failed. attempt {i} of {n}")
+                await asyncio.sleep(10) # if command failed, back off for 10 seconds
         self.update_connection_info(self.gateway_url, ports, **kwargs)
 
         return self.connection_info
